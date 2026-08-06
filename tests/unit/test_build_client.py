@@ -49,11 +49,30 @@ def check_foundry_base_url() -> bool:
     return ok
 
 
+def check_fix_tool_call_message_order() -> bool:
+    """Regression test for the CopilotKit/@ag-ui client history-reordering
+    bug worked around in main._FixToolCallOrderMiddleware: the assistant
+    `toolCalls` message can arrive *after* its own tool response and the
+    next assistant text message. See docs/tool-mcp-findings.md."""
+    buggy = [
+        {"id": "m1", "role": "user", "content": "..."},
+        {"id": "tm1", "role": "tool", "toolCallId": "call_X", "content": "..."},
+        {"id": "a1", "role": "assistant", "content": "..."},
+        {"id": "a2", "role": "assistant", "toolCalls": [{"id": "call_X"}]},
+        {"id": "m2", "role": "user", "content": "..."},
+    ]
+    fixed = main._fix_tool_call_message_order(buggy)
+    ok = [m["id"] for m in fixed] == ["m1", "a2", "tm1", "a1", "m2"]
+    print(f"[fix_tool_call_message_order] {'ok' if ok else 'FAILED'} order={[m['id'] for m in fixed]!r}")
+    return ok
+
+
 def demo() -> None:
     results = {
         "local_client": check_local_client(),
         "foundry_needs_endpoint": check_foundry_needs_endpoint(),
         "foundry_base_url": check_foundry_base_url(),
+        "fix_tool_call_message_order": check_fix_tool_call_message_order(),
     }
     print("\n=== summary ===")
     for name, ok in results.items():
