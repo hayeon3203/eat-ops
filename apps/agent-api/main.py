@@ -32,7 +32,7 @@ def build_client(provider: str = AGENT_PROVIDER) -> OpenAIChatCompletionClient:
     if provider == "foundry":
         if not FOUNDRY_PROJECT_ENDPOINT:
             raise ValueError("FOUNDRY_PROJECT_ENDPOINT not set (required for AGENT_PROVIDER=foundry)")
-        from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+        from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 
         token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://ai.azure.com/.default")
         return OpenAIChatCompletionClient(
