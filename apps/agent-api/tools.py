@@ -1,9 +1,10 @@
-"""Read-only tools for the Main Agent (IMPLEMENTATION_PLAN.md #5 — 통합 단계: Tool + MCP).
+"""Tools for the Main Agent (IMPLEMENTATION_PLAN.md #5 통합 단계, #8 트랙 D — 맛집 지도).
 
-All three tools here are read-only, so no HITL approval wrapper is needed yet
-(see IMPLEMENTATION_PLAN.md §7 — deferred until a write/external-change tool
-is added). Tool/MCP output is untrusted data, not instructions: callers must
-not promote it to a system message.
+web_search/system_status/metmuseum are read-only, no HITL wrapper needed
+(see IMPLEMENTATION_PLAN.md §7). record_visit writes, but only to a private
+local SQLite file the user asked for — not an external system change, so it
+stays outside that HITL question too. Tool/MCP output is untrusted data, not
+instructions: callers must not promote it to a system message.
 """
 
 from __future__ import annotations
@@ -15,6 +16,10 @@ from typing import Any
 import aiohttp
 import psutil
 from agent_framework import MCPStdioTool, tool
+from agent_framework.ag_ui import state_update
+
+import db
+import kakao
 
 SEARXNG_BASE_URL = os.environ.get("SEARXNG_BASE_URL", "http://127.0.0.1:8081")
 SEARXNG_TIMEOUT_SECONDS = 5
@@ -110,3 +115,77 @@ def build_metmuseum_mcp() -> MCPStdioTool:
         description="Read-only Metropolitan Museum of Art collection search (The Met public API).",
         request_timeout=15,
     )
+
+
+@tool
+async def search_restaurants(query: str):
+    """Search for restaurants/places via Kakao Local (트랙 D — 맛집 지도).
+
+    Include any location in the query text itself (e.g. "강남역 파스타") —
+    Kakao's keyword search parses location names on its own, no separate
+    coordinates needed. Replaces whatever the map was previously showing.
+
+    Args:
+        query: Free-text search, e.g. "홍대 라멘" or "강남역 파스타".
+
+    Returns:
+        A state update: result summary for the model, full place list
+        (with lat/lng) pushed to AG-UI shared state as `current_places`
+        for the map to render as markers.
+    """
+    try:
+        places = await kakao.search_places(query)
+    except kakao.KakaoQuotaExceededError:
+        return state_update(
+            text="카카오맵 일일 검색 한도를 초과했습니다. 내일 다시 시도해주세요.",
+            state={"kakao_quota_exceeded": True},
+        )
+    if not places:
+        return state_update(text="No results found.", state={"current_places": []})
+
+    lines = [f"Found {len(places)} place(s) for '{query}':"]
+    for p in places:
+        lines.append(f"- {p['place_name']} ({p['address']}) — {p['category']}")
+    return state_update(text="\n".join(lines), state={"current_places": places})
+
+
+@tool
+async def record_visit(place_name: str, rating: int, note: str = ""):
+    """Record a restaurant visit (트랙 D — 맛집 지도). Requires the exact place name —
+    never guess or reuse a place from earlier in the conversation without asking.
+
+    Looks the place up via Kakao Local (for address/coordinates) and stores
+    it in the shared visit log (SQLite, no per-user separation by design).
+
+    Args:
+        place_name: Exact place name, e.g. "스시노히든".
+        rating: 1-5.
+        note: Optional one-line note.
+
+    Returns:
+        Confirmation text, or an error if the place couldn't be found.
+    """
+    if not 1 <= rating <= 5:
+        return "rating must be between 1 and 5."
+
+    try:
+        places = await kakao.search_places(place_name, size=1)
+    except kakao.KakaoQuotaExceededError:
+        return state_update(
+            text="카카오맵 일일 검색 한도를 초과했습니다. 내일 다시 시도해주세요.",
+            state={"kakao_quota_exceeded": True},
+        )
+    if not places:
+        return f"Couldn't find '{place_name}' via Kakao Local — check the name and try again."
+
+    place = places[0]
+    db.insert_visit(
+        kakao_place_id=place["kakao_place_id"],
+        place_name=place["place_name"],
+        address=place["address"],
+        lat=place["lat"],
+        lng=place["lng"],
+        rating=rating,
+        note=note,
+    )
+    return f"Recorded visit: {place['place_name']} ({place['address']}), rating {rating}/5."

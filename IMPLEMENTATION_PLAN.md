@@ -74,7 +74,32 @@ DESIGN.md 6절 "민감 문서 요청" 흐름대로 ModelRouter의 최소 버전 
 - 모델별 계약 테스트의 구체적 통과 기준
 - 패키지 관리자/모노레포 도구 (pnpm + uv + FastAPI, 모노레포 도구 없음으로 기본 진행, 필요시 변경)
 
-## 8. 향후 아이디어 (스코프 아님, 기록만)
+## 8. 트랙 D — 맛집 지도 (grilling 완료, 구현 착수)
 
-- 기본 tool calling + MCP 연결이 검증되면, 다음으로 **맛집 지도** 기능 시도
-  - 별도 grilling 필요: 지도/장소 데이터 소스(MCP 또는 API), 방문 기록 저장 방식 등 미정
+목적: 채팅으로 맛집 추천을 받고, 방문 기록을 남기고, 둘 다 지도 마커로 확인한다.
+
+결정 사항:
+
+| 항목 | 결정 |
+|---|---|
+| 장소 데이터 소스 | 카카오맵 Local API (키워드 검색), REST 키 필요 |
+| 지도 렌더링 | 카카오맵 JavaScript SDK, JS 키 필요 (둘 다 지금 발급, `.env`) |
+| 방문 기록 저장 | SQLite 파일 (agent-api 내), 사용자 분리 없이 전체 공유 (동시접속 10명 기준, 인증 생략 결정 그대로 유지) |
+| 기록 스키마 | place_name, address, lat, lng, kakao_place_id, rating(1~5), note, visited_at |
+| UI 레이아웃 | `apps/web` 메인 = 지도, 사이드바 = CopilotChat. 사이드바 상단 탭 [추천 \| 기록]이 지도에 표시할 마커 세트를 전환 |
+| tool → 지도 연동 | CopilotKit `useCoAgent` 공유 state로 backend tool 결과를 프론트 지도에 반영. **스파이크 필요**: 현재 `apps/agent-api`의 `Agent`(agent_framework)가 AG-UI `STATE_SNAPSHOT`/`STATE_DELTA`를 지원하는지 확인 후 진행 |
+| 추천 마커 정책 | 검색할 때마다 이전 추천 마커 교체 (누적 안 함) |
+| 기록 추가 경로 | 채팅으로만. 지도 마커 클릭 등 별도 UI 조작 없음 |
+| 기록 대상 참조 | 장소명 생략 금지 — 에이전트가 항상 명시적 장소명을 요구하도록 프롬프트에 명시 (직전 추천 결과에서 매칭해 좌표/주소 보강) |
+| 지도 초기 중심 | 브라우저 Geolocation, 거부/실패 시 서울시청 좌표로 폴백 |
+
+작업 순서:
+
+1. 카카오 디벨로퍼스 앱 등록, REST 키 + JS 키 발급 → `.env`
+2. `apps/agent-api`: SQLite 스키마 생성, `search_restaurants` / `record_visit` tool 작성 (카카오 Local API 클라이언트 포함)
+3. `apps/agent-api`: Agent state에 `current_places`(추천 검색 결과) 필드 추가, tool이 갱신하도록 연결 — 앞의 스파이크 결과에 따라 방식 확정
+4. `apps/web`: 메인 페이지를 지도 레이아웃으로 재구성 (카카오맵 JS SDK 로드, 사이드바에 기존 `CopilotChat` 이동)
+5. `apps/web`: 사이드바 [추천/기록] 탭 — `useCoAgent` state(추천) / SQLite 조회 REST 엔드포인트(기록) 각각 지도 마커로 렌더링
+6. Geolocation 초기 중심 처리, 실패 폴백
+
+완료 조건: 채팅에 "강남역 파스타 추천해줘" → 지도에 검색 결과 마커 표시. "OO 식당 방문했어, 기록해줘 평점 4" → SQLite에 저장되고 [기록] 탭에서 지도 마커로 조회된다.

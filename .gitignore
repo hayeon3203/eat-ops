@@ -5,3 +5,7 @@ out/
 node_modules/
 .next/
 *.log
+.env
+.env.*
+!.env.example
+apps/agent-api/data/
