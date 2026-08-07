@@ -1,8 +1,9 @@
 """Kakao Local API client (트랙 D — 맛집 지도, IMPLEMENTATION_PLAN.md §8).
 
-Keyword search only: Kakao's own query parsing handles location text baked
-into the query (e.g. "강남역 파스타"), so no separate geocoding step or
-lat/lng bias parameter is needed for the MVP.
+Keyword search: Kakao's own query parsing handles location text baked into
+the query (e.g. "강남역 파스타"), no geocoding step needed for named
+locations. For proximity search ("내 주변"), pass lat/lng/radius_m to bias
+results toward the user's current coordinates.
 """
 
 from __future__ import annotations
@@ -36,14 +37,34 @@ def _mark_quota_exceeded() -> None:
     _quota_exceeded_date = date.today()
 
 
-async def search_places(query: str, size: int = 5) -> list[KakaoPlace]:
+def _build_search_params(
+    query: str, size: int, lat: float | None, lng: float | None, radius_m: int | None
+) -> dict[str, str]:
+    params = {"query": query, "size": str(max(1, min(size, 15)))}
+    if lat is not None and lng is not None:
+        # Kakao keyword search: y=lat, x=lng, radius in meters (max 20000).
+        # Default 2000m when the caller wants proximity but didn't pick a
+        # radius — wide enough to be useful, narrow enough to stay "near me".
+        params["y"] = str(lat)
+        params["x"] = str(lng)
+        params["radius"] = str(max(1, min(radius_m or 2000, 20000)))
+    return params
+
+
+async def search_places(
+    query: str,
+    size: int = 5,
+    lat: float | None = None,
+    lng: float | None = None,
+    radius_m: int | None = None,
+) -> list[KakaoPlace]:
     if not KAKAO_REST_API_KEY:
         raise RuntimeError("KAKAO_REST_API_KEY not set")
     if _quota_exceeded_date == date.today():
         raise KakaoQuotaExceededError("Kakao Local daily quota already hit today.")
 
     headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
-    params = {"query": query, "size": str(max(1, min(size, 15)))}
+    params = _build_search_params(query, size, lat, lng, radius_m)
     timeout = aiohttp.ClientTimeout(total=KAKAO_TIMEOUT_SECONDS)
     async with aiohttp.ClientSession(timeout=timeout) as session, session.get(
         KAKAO_KEYWORD_SEARCH_URL, headers=headers, params=params
