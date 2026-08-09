@@ -7,7 +7,7 @@ import { Layout } from "@/components/Layout";
 type Provider = "local" | "foundry";
 
 export default function Home() {
-  const [provider, setProvider] = useState<Provider>("local");
+  const [provider, setProvider] = useState<Provider>("foundry");
 
   return (
     <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
