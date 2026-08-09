@@ -16,6 +16,7 @@ export function VisitList({ onResultsChange }: VisitListProps) {
   const [liveResults, setLiveResults] = useState<Place[] | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   useEffect(() => {
     fetch(`${AGENT_API_BASE}/api/visits`)
@@ -39,10 +40,12 @@ export function VisitList({ onResultsChange }: VisitListProps) {
     if (!query.trim()) return;
     setLiveLoading(true);
     setLiveError(null);
+    setQuotaExceeded(false);
     try {
       const res = await fetch(`${AGENT_API_BASE}/api/search?q=${encodeURIComponent(query)}`);
       if (res.status === 429) {
         setLiveError("오늘 카카오 검색 한도를 초과했습니다.");
+        setQuotaExceeded(true);
         return;
       }
       if (!res.ok) throw new Error(`search failed: ${res.status}`);
@@ -67,7 +70,7 @@ export function VisitList({ onResultsChange }: VisitListProps) {
           }}
           placeholder="방문한 맛집 검색"
         />
-        <button onClick={searchLive} disabled={liveLoading}>
+        <button onClick={searchLive} disabled={liveLoading || quotaExceeded}>
           카카오에서 더 찾기
         </button>
       </div>
