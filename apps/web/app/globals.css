@@ -1,5 +1,161 @@
+:root {
+  --color-primary: #1a6fb0;
+  --color-primary-active: #14588c;
+  --color-ink: #33363b;
+  /* CopilotKit 테마 변수 재사용 — 아바타 버튼/버블 색을 Daol 톤으로 */
+  --copilot-kit-primary-color: var(--color-primary);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-ink);
+}
+
+.layout-root {
+  height: 100%;
+  display: flex;
+}
+
+.mobile-view-tabs {
+  display: none;
+}
+
+.layout-sidebar {
+  width: 360px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.layout-map {
+  flex: 1;
+  position: relative;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-tabs button,
+.mobile-view-tabs button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.sidebar-tabs button.active,
+.mobile-view-tabs button.active {
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-empty {
+  padding: 16px;
+  color: #6b7280;
+}
+
+.restaurant-card {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.restaurant-card-name {
+  font-weight: 600;
+}
+
+.restaurant-card-address {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.restaurant-card-category {
+  font-size: 0.75rem;
+  color: var(--color-primary);
+}
+
+.restaurant-card-rating {
+  font-size: 0.8rem;
+}
+
+.visit-search {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.visit-search input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.visit-search button {
+  padding: 8px 12px;
+  border: 1px solid var(--color-primary);
+  background: white;
+  color: var(--color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.visit-search button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.visit-search-error {
+  padding: 0 16px;
+  color: #dc2626;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .layout-root {
+    flex-direction: column;
+  }
+
+  .mobile-view-tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .layout-sidebar,
+  .layout-map {
+    width: 100%;
+    flex: 1;
+  }
+
+  .layout-root[data-mobile-view="map"] .layout-sidebar {
+    display: none;
+  }
+
+  .layout-root[data-mobile-view="list"] .layout-map {
+    display: none;
+  }
 }
