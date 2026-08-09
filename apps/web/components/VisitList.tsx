@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RestaurantCard } from "./RestaurantCard";
 import type { Place, Visit } from "./types";
 
@@ -24,8 +24,11 @@ export function VisitList({ onResultsChange }: VisitListProps) {
       .catch(() => setVisits([]));
   }, []);
 
-  const filtered = visits.filter((v) => v.place_name.includes(query) || v.address.includes(query));
-  const displayed: (Visit | Place)[] = liveResults ?? filtered;
+  const filtered = useMemo(
+    () => visits.filter((v) => v.place_name.includes(query) || v.address.includes(query)),
+    [visits, query]
+  );
+  const displayed: (Visit | Place)[] = useMemo(() => liveResults ?? filtered, [liveResults, filtered]);
 
   useEffect(() => {
     onResultsChange(displayed);
