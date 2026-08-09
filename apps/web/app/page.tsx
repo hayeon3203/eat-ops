@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotChat } from "@copilotkit/react-ui";
+import { Layout } from "@/components/Layout";
 
 type Provider = "local" | "foundry";
 
@@ -23,7 +23,7 @@ export default function Home() {
           a different model mid-conversation. */}
       <CopilotKit key={provider} runtimeUrl={`/api/copilotkit/${provider}`}>
         <div style={{ flex: 1, minHeight: 0 }}>
-          <CopilotChat labels={{ title: "Foundry Hybrid Agent", initial: "Hi! Ask me anything." }} />
+          <Layout />
         </div>
       </CopilotKit>
     </main>
