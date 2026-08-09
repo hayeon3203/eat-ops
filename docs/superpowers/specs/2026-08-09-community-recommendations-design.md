@@ -114,10 +114,10 @@ export interface Recommendation {
 
 - **삭제**: `components/RecommendList.tsx` (더 이상 안 씀)
 - **신규 `components/RecommendationForm.tsx`**: 장소명 입력 + 세 축 선택(드롭다운 또는 칩, 각 "선택 안 함" 옵션 포함) + 이유 입력 + 등록 버튼 → `POST /api/recommendations` 호출, 성공시 목록 갱신 콜백 호출.
-- **신규 `components/RecommendationList.tsx`**: `GET /api/recommendations` 조회(마운트시 1회, `VisitList` 패턴과 동일) + 카테고리 필터 칩(축별 단일 선택 + "전체", 기본값 전체) + `RestaurantCard`로 렌더링(카테고리 뱃지 추가 표시) + `onResultsChange` 콜백으로 필터링된 목록을 상위에 전달(지도 마커용, `VisitList.onResultsChange`와 동일 패턴).
+- **신규 `components/RecommendationList.tsx`**: `GET /api/recommendations` 조회(마운트시 1회, `VisitList` 패턴과 동일) + 카테고리 필터 칩(축별 단일 선택 + "전체", 기본값 전체) + `RestaurantCard`로 렌더링(카테고리 뱃지 추가 표시) + `onResultsChange(items, activeColorAxis)` 콜백으로 필터링된 목록과 "마지막으로 건드린 축"을 상위에 전달(지도 마커 색 결정용). 축 필터 클릭할 때마다 그 축을 `activeColorAxis`로 기록, 전체 필터 해제시 `null`.
 - **`RestaurantCard.tsx` 확장**: `occasion`/`food_type`/`cuisine` optional prop 추가, 있는 것만 뱃지로 표시. 뱃지 배경색은 축별 대표색(아래 색상 시스템).
-- **`Sidebar.tsx` 수정**: `activeTab === "recommend"`일 때 `RecommendationForm` + `RecommendationList` 렌더링(기존 `RecommendList` 자리 교체). `onRecommendResultsChange` prop 추가(기존 `onRecordResultsChange`와 나란히).
-- **`Layout.tsx` 수정**: `recommendResults` state 추가(`recordResults`와 나란히), `MapView`에 새 prop으로 전달.
+- **`Sidebar.tsx` 수정**: `activeTab === "recommend"`일 때 `RecommendationForm` + `RecommendationList` 렌더링(기존 `RecommendList` 자리 교체). `onRecommendResultsChange(items, activeColorAxis)` prop 추가(기존 `onRecordResultsChange`와 나란히).
+- **`Layout.tsx` 수정**: `recommendResults`/`recommendColorAxis` state 추가(`recordResults`와 나란히), `MapView`에 새 prop으로 전달.
 - **`MapView.tsx` 수정**: 마커 레이어를 탭 종속 단일 세트에서 **AI 레이어(항상 켜짐) + 탭별 레이어**로 분리.
 
 ### 지도 마커 레이어링
@@ -126,23 +126,25 @@ export interface Recommendation {
 
 | 레이어 | 데이터 소스 | 노출 조건 | 마커 색 |
 |---|---|---|---|
-| AI 검색 | `current_places` (useCoAgent) | 항상 | 색 A (예: 빨강 계열) |
-| 추천 | `recommendResults` (필터링된 recommendations) | `activeTab === "recommend"` | 색 B (Daol blue, 기존) |
-| 기록 | `recordResults` (필터링된 visits) | `activeTab === "record"` | 색 C (예: 회색/보라 계열) |
+| AI 검색 | `current_places` (useCoAgent) | 항상 | 고정색 A (카테고리 축 없는 데이터라 축 색 적용 불가) |
+| 추천 | `recommendResults` (필터링된 recommendations) | `activeTab === "recommend"` | **카테고리 축 색** (아래) |
+| 기록 | `recordResults` (필터링된 visits) | `activeTab === "record"` | 고정색 C (카테고리 축 없는 데이터라 축 색 적용 불가) |
 
 `kakao.maps.Marker`의 `image` 옵션으로 레이어별 다른 마커 아이콘(단색 핀 SVG data URI 정도로 충분, 이미지 파일 추가 안 함) 지정. 기존 마커 clear/rebuild 로직(레이어 2세트로 확장, 각각 별도 ref 배열로 관리)은 최종 리뷰에서 고친 `useMemo`/`ResizeObserver` 패턴 그대로 유지.
 
-기본 탭이 `"recommend"`이므로 사이트를 열면 AI 레이어(빈 상태) + 추천 레이어(전체 카테고리)가 바로 보인다 — 요구사항("사이트 열면 보임") 별도 처리 불필요.
+기본 탭이 `"recommend"`이므로 사이트를 열면 AI 레이어(빈 상태) + 추천 레이어(전체 카테고리, 기본색)가 바로 보인다 — 요구사항("사이트 열면 보임") 별도 처리 불필요.
 
-### 색상 시스템 (두 체계, 서로 무관)
+### 색상 시스템 — 카테고리 축 색이 칩/뱃지와 추천 레이어 마커 둘 다에 쓰임
 
-1. **지도 마커 레이어 색** — 위 표의 색 A/B/C. 어느 레이어인지 구분용, "몇 번 카드에 어떤 태그가 붙었는지"와는 무관.
-2. **카테고리 축 대표색** (칩/뱃지 UI 전용, 마커엔 안 씀 — 마커는 한 핀에 색 하나뿐이라 3축을 동시에 못 담음):
-   - 상황(occasion) 축 — 노랑 계열
-   - 음식형태(food_type) 축 — 초록 계열
-   - 요리종류(cuisine) 축 — 파랑 계열
+세 축 각각 대표색 하나:
+- 상황(occasion) 축 — 노랑 계열
+- 음식형태(food_type) 축 — 초록 계열
+- 요리종류(cuisine) 축 — 파랑 계열
 
-   같은 축 안의 값들(예: 한식/양식/일식)은 전부 같은 색(세부 shade 구분 안 함, 축 단위로만 색 구분) — `globals.css`에 `--tag-occasion`, `--tag-food-type`, `--tag-cuisine` 세 변수로 정의, `RestaurantCard`/필터 칩이 참조.
+같은 축 안의 값들(예: 한식/양식/일식)은 전부 같은 색(세부 shade 구분 안 함, 축 단위로만 색 구분) — `globals.css`에 `--tag-occasion`, `--tag-food-type`, `--tag-cuisine` 세 변수로 정의.
+
+- **칩/뱃지 UI**: `RestaurantCard`/필터 칩이 해당 축 색 그대로 참조 — 여기는 문제 없음(뱃지 여러 개 동시 표시 가능하니까).
+- **추천 레이어 마커**: 마커는 한 핀에 색 하나뿐이라 3축을 동시에 못 담음 — **현재 필터 중인 축의 색**을 씀. `RecommendationList`가 필터 상태에서 "마지막으로 건드린 축"(`activeColorAxis: "occasion" | "food_type" | "cuisine" | null`)을 추적해 `onResultsChange`와 함께 상위로 전달(`Layout` → `MapView`). 여러 축을 동시에 필터해도(AND 결합) 마커 색은 마지막 건드린 축 하나만 반영. 필터가 아무것도 없으면("전체") 축 색 대신 카테고리-무관 기본색 하나.
 
 정확한 hex 값은 Daol 톤(§`2026-08-07` 설계의 `--color-primary` 계열)과 안 겹치게 구현 단계에서 확정.
 
