@@ -118,15 +118,28 @@ def build_metmuseum_mcp() -> MCPStdioTool:
 
 
 @tool
-async def search_restaurants(query: str):
+async def search_restaurants(
+    query: str,
+    lat: float | None = None,
+    lng: float | None = None,
+    radius_m: int | None = None,
+):
     """Search for restaurants/places via Kakao Local (트랙 D — 맛집 지도).
 
     Include any location in the query text itself (e.g. "강남역 파스타") —
-    Kakao's keyword search parses location names on its own, no separate
-    coordinates needed. Replaces whatever the map was previously showing.
+    Kakao's keyword search parses location names on its own for named
+    locations. Replaces whatever the map was previously showing.
+
+    For "내 주변"/"내 위치 기준" style requests, use the lat/lng coordinates
+    shared in context (the frontend exposes the user's current location)
+    and pass radius_m instead of guessing a place name.
 
     Args:
-        query: Free-text search, e.g. "홍대 라멘" or "강남역 파스타".
+        query: Free-text search, e.g. "홍대 라멘" or "파스타" (for radius search).
+        lat: User's current latitude — only for "내 주변" style requests.
+        lng: User's current longitude — only for "내 주변" style requests.
+        radius_m: Search radius in meters (max 20000, defaults to 2000 if
+            lat/lng given but radius_m isn't) — only used together with lat/lng.
 
     Returns:
         A state update: result summary for the model, full place list
@@ -134,7 +147,7 @@ async def search_restaurants(query: str):
         for the map to render as markers.
     """
     try:
-        places = await kakao.search_places(query)
+        places = await kakao.search_places(query, lat=lat, lng=lng, radius_m=radius_m)
     except kakao.KakaoQuotaExceededError:
         return state_update(
             text="카카오맵 일일 검색 한도를 초과했습니다. 내일 다시 시도해주세요.",
