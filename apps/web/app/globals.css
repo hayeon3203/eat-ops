@@ -2,6 +2,9 @@
   --color-primary: #1a6fb0;
   --color-primary-active: #14588c;
   --color-ink: #33363b;
+  --tag-occasion: #d97706;
+  --tag-food-type: #16a34a;
+  --tag-cuisine: #2563eb;
   /* CopilotKit 테마 변수 재사용 — 아바타 버튼/버블 색을 Daol 톤으로 */
   --copilot-kit-primary-color: var(--color-primary);
 }
@@ -158,4 +161,82 @@ body {
   .layout-root[data-mobile-view="list"] .layout-map {
     display: none;
   }
+}
+
+.restaurant-card-tags {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+}
+
+.tag-occasion {
+  background: var(--tag-occasion);
+}
+
+.tag-food-type {
+  background: var(--tag-food-type);
+}
+
+.tag-cuisine {
+  background: var(--tag-cuisine);
+}
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.category-filters button {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.category-filters button.active {
+  color: white;
+  border-color: transparent;
+}
+
+.recommendation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.recommendation-form input,
+.recommendation-form select {
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.recommendation-form button {
+  padding: 8px 12px;
+  border: none;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.recommendation-form button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
