@@ -18,6 +18,7 @@ import psutil
 from agent_framework import MCPStdioTool, tool
 from agent_framework.ag_ui import state_update
 
+import categories
 import db
 import kakao
 
@@ -202,3 +203,60 @@ async def record_visit(place_name: str, rating: int, note: str = ""):
         note=note,
     )
     return f"Recorded visit: {place['place_name']} ({place['address']}), rating {rating}/5."
+
+
+@tool
+async def add_recommendation(
+    place_name: str,
+    occasion: str | None = None,
+    food_type: str | None = None,
+    cuisine: str | None = None,
+    note: str = "",
+):
+    """Add a shared restaurant recommendation (트랙 D — 맛집 지도 확장).
+
+    No visit required — separate from record_visit, which is for an actual
+    dining experience with a rating. Requires the exact place name — never
+    guess or infer it from earlier chat context.
+
+    Args:
+        place_name: Exact place name, e.g. "스시노히든".
+        occasion: One of "점심장소", "회식장소", "수고한 나에게", or omit.
+        food_type: One of "밥", "면", "빵", or omit.
+        cuisine: One of "한식", "양식", "일식", "중식", "베트남식", "기타", or omit.
+        note: Optional one-line reason for the recommendation.
+
+    Returns:
+        Confirmation text, or an error if the place couldn't be found or a
+        category value isn't one of the allowed options.
+    """
+    try:
+        categories.validate_category(occasion, categories.OCCASIONS, "occasion")
+        categories.validate_category(food_type, categories.FOOD_TYPES, "food_type")
+        categories.validate_category(cuisine, categories.CUISINES, "cuisine")
+    except ValueError as e:
+        return str(e)
+
+    try:
+        places = await kakao.search_places(place_name, size=1)
+    except kakao.KakaoQuotaExceededError:
+        return state_update(
+            text="카카오맵 일일 검색 한도를 초과했습니다. 내일 다시 시도해주세요.",
+            state={"kakao_quota_exceeded": True},
+        )
+    if not places:
+        return f"Couldn't find '{place_name}' via Kakao Local — check the name and try again."
+
+    place = places[0]
+    db.insert_recommendation(
+        kakao_place_id=place["kakao_place_id"],
+        place_name=place["place_name"],
+        address=place["address"],
+        lat=place["lat"],
+        lng=place["lng"],
+        occasion=occasion,
+        food_type=food_type,
+        cuisine=cuisine,
+        note=note,
+    )
+    return f"Added recommendation: {place['place_name']} ({place['address']})."
