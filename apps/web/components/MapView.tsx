@@ -29,10 +29,10 @@ const AXIS_MARKER_COLOR: Record<CategoryAxis, string> = {
 };
 
 function buildMarkerImage(color: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42"><path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z" fill="${color}" stroke="white" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="white"/></svg>`;
   return new window.kakao.maps.MarkerImage(
     `data:image/svg+xml,${encodeURIComponent(svg)}`,
-    new window.kakao.maps.Size(24, 24)
+    new window.kakao.maps.Size(32, 42)
   );
 }
 
