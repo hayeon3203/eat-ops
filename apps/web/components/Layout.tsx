@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
 import { AskAvatar } from "./AskAvatar";
-import type { Place, SidebarTab, Visit } from "./types";
+import type { CategoryAxis, Place, Recommendation, SidebarTab, Visit } from "./types";
 
 type MobileView = "map" | "list";
 
@@ -12,6 +12,8 @@ export function Layout() {
   const [activeTab, setActiveTab] = useState<SidebarTab>("recommend");
   const [mobileView, setMobileView] = useState<MobileView>("map");
   const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
+  const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
+  const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
 
   return (
     <div className="layout-root" data-mobile-view={mobileView}>
@@ -24,10 +26,23 @@ export function Layout() {
         </button>
       </div>
       <div className="layout-sidebar">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onRecordResultsChange={setRecordResults} />
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onRecordResultsChange={setRecordResults}
+          onRecommendResultsChange={(items, axis) => {
+            setRecommendResults(items);
+            setRecommendColorAxis(axis);
+          }}
+        />
       </div>
       <div className="layout-map">
-        <MapView activeTab={activeTab} recordMarkers={recordResults} />
+        <MapView
+          activeTab={activeTab}
+          recordMarkers={recordResults}
+          recommendMarkers={recommendResults}
+          recommendColorAxis={recommendColorAxis}
+        />
       </div>
       <AskAvatar />
     </div>

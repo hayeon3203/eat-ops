@@ -3,14 +3,35 @@ interface RestaurantCardProps {
   address: string;
   category?: string;
   rating?: number | null;
+  occasion?: string | null;
+  foodType?: string | null;
+  cuisine?: string | null;
+  note?: string | null;
 }
 
-export function RestaurantCard({ name, address, category, rating }: RestaurantCardProps) {
+export function RestaurantCard({
+  name,
+  address,
+  category,
+  rating,
+  occasion,
+  foodType,
+  cuisine,
+  note,
+}: RestaurantCardProps) {
   return (
     <div className="restaurant-card">
       <div className="restaurant-card-name">{name}</div>
       <div className="restaurant-card-address">{address}</div>
       {category && <div className="restaurant-card-category">{category}</div>}
+      {(occasion || foodType || cuisine) && (
+        <div className="restaurant-card-tags">
+          {occasion && <span className="tag tag-occasion">{occasion}</span>}
+          {foodType && <span className="tag tag-food-type">{foodType}</span>}
+          {cuisine && <span className="tag tag-cuisine">{cuisine}</span>}
+        </div>
+      )}
+      {note && <div className="restaurant-card-note">{note}</div>}
       {rating != null && (
         <div className="restaurant-card-rating">
           {"★".repeat(rating)}
