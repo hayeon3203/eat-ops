@@ -20,7 +20,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from agent_framework import AgentContext, AgentMiddleware, FunctionInvocationContext, FunctionMiddleware
+from agent_framework import (
+    AgentContext,
+    AgentMiddleware,
+    FunctionInvocationContext,
+    FunctionMiddleware,
+    MiddlewareTermination,
+)
+
+import cost_guard
 
 AUDIT_LOG_PATH = Path(os.environ.get("AUDIT_LOG_PATH", Path(__file__).parent / "data" / "audit.log"))
 
@@ -68,7 +76,12 @@ class AuditAgentMiddleware(AgentMiddleware):
 
         error_code = None
         try:
+            if self.provider == "foundry":
+                cost_guard.check_within_cap()  # raises DailyCostCapExceeded if already over
             await call_next()
+        except cost_guard.DailyCostCapExceeded as exc:
+            error_code = type(exc).__name__
+            raise MiddlewareTermination(str(exc)) from exc
         except Exception as exc:
             error_code = type(exc).__name__
             raise
@@ -86,6 +99,12 @@ class AuditAgentMiddleware(AgentMiddleware):
             except Exception:
                 pass  # best-effort — audit logging must never break the request
 
+            daily_spend_usd = None
+            if self.provider == "foundry" and usage:
+                daily_spend_usd = round(
+                    cost_guard.record_usage(usage.get("input_token_count"), usage.get("output_token_count")), 4
+                )
+
             log_event(
                 "agent_run",
                 thread_id=getattr(context.session, "session_id", None) if context.session else None,
@@ -98,6 +117,7 @@ class AuditAgentMiddleware(AgentMiddleware):
                 error_code=error_code,
                 latency_ms=latency_ms,
                 token_usage=usage,
+                daily_spend_usd=daily_spend_usd,
                 input_hash=hash_text(last_user_text),
                 sensitivity="unknown",
             )
