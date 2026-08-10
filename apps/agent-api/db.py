@@ -138,3 +138,8 @@ def list_recommendations() -> list[dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute("SELECT * FROM recommendations ORDER BY created_at DESC").fetchall()
         return [dict(row) for row in rows]
+
+
+def delete_recommendation(recommendation_id: int) -> None:
+    with _connect() as conn:
+        conn.execute("DELETE FROM recommendations WHERE id = ?", (recommendation_id,))

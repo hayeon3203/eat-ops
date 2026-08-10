@@ -81,6 +81,17 @@ export function RecommendationList({ onResultsChange }: RecommendationListProps)
     }
   }
 
+  async function handleDelete(rec: Recommendation) {
+    if (!window.confirm(`"${rec.place_name}" (${rec.address}) 추천을 삭제할까요?`)) return;
+    try {
+      const res = await fetch(`${AGENT_API_BASE}/api/recommendations/${rec.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`delete failed: ${res.status}`);
+      setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
+    } catch {
+      window.alert("삭제에 실패했습니다.");
+    }
+  }
+
   return (
     <div>
       <RecommendationForm onAdded={(rec) => setRecommendations((prev) => [rec, ...prev])} />
@@ -120,14 +131,18 @@ export function RecommendationList({ onResultsChange }: RecommendationListProps)
         <p className="sidebar-empty">등록된 추천이 없습니다.</p>
       ) : (
         filtered.map((r) => (
-          <RestaurantCard
-            key={r.id}
-            name={r.place_name}
-            address={r.address}
-            occasion={r.occasion}
-            foodType={r.food_type}
-            cuisine={r.cuisine}
-          />
+          <div key={r.id} className="recommendation-item">
+            <RestaurantCard
+              name={r.place_name}
+              address={r.address}
+              occasion={r.occasion}
+              foodType={r.food_type}
+              cuisine={r.cuisine}
+            />
+            <button className="recommendation-delete" onClick={() => handleDelete(r)}>
+              삭제
+            </button>
+          </div>
         ))
       )}
     </div>

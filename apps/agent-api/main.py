@@ -265,6 +265,12 @@ async def add_recommendation_endpoint(body: RecommendationIn):
     )
 
 
+@app.delete("/api/recommendations/{recommendation_id}")
+def delete_recommendation_endpoint(recommendation_id: int):
+    db.delete_recommendation(recommendation_id)
+    return {"deleted": recommendation_id}
+
+
 local_agent = Agent(name="local_agent", instructions=INSTRUCTIONS, client=build_local_client(), tools=TOOLS)
 add_agent_framework_fastapi_endpoint(app=app, agent=local_agent, path="/local")
 
