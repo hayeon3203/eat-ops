@@ -1,16 +1,22 @@
 "use client";
 
-import { RecommendList } from "./RecommendList";
+import { RecommendationList } from "./RecommendationList";
 import { VisitList } from "./VisitList";
-import type { Place, SidebarTab, Visit } from "./types";
+import type { CategoryAxis, Place, Recommendation, SidebarTab, Visit } from "./types";
 
 interface SidebarProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
   onRecordResultsChange: (items: (Visit | Place)[]) => void;
+  onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
 }
 
-export function Sidebar({ activeTab, onTabChange, onRecordResultsChange }: SidebarProps) {
+export function Sidebar({
+  activeTab,
+  onTabChange,
+  onRecordResultsChange,
+  onRecommendResultsChange,
+}: SidebarProps) {
   return (
     <div className="sidebar">
       <div className="sidebar-tabs">
@@ -22,7 +28,11 @@ export function Sidebar({ activeTab, onTabChange, onRecordResultsChange }: Sideb
         </button>
       </div>
       <div className="sidebar-content">
-        {activeTab === "recommend" ? <RecommendList /> : <VisitList onResultsChange={onRecordResultsChange} />}
+        {activeTab === "recommend" ? (
+          <RecommendationList onResultsChange={onRecommendResultsChange} />
+        ) : (
+          <VisitList onResultsChange={onRecordResultsChange} />
+        )}
       </div>
     </div>
   );

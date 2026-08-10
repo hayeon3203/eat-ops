@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { useGeolocation } from "./useGeolocation";
-import type { AgentState, SidebarTab } from "./types";
+import type { AgentState, CategoryAxis, SidebarTab } from "./types";
 
 interface MapMarker {
   lat: number;
@@ -15,23 +15,57 @@ interface MapMarker {
 interface MapViewProps {
   activeTab: SidebarTab;
   recordMarkers: { lat: number; lng: number; place_name: string }[];
+  recommendMarkers: { lat: number; lng: number; place_name: string }[];
+  recommendColorAxis: CategoryAxis | null;
 }
 
-export function MapView({ activeTab, recordMarkers }: MapViewProps) {
+const AI_MARKER_COLOR = "#e0435c";
+const RECORD_MARKER_COLOR = "#7c5cbf";
+const RECOMMEND_DEFAULT_COLOR = "#1a6fb0";
+const AXIS_MARKER_COLOR: Record<CategoryAxis, string> = {
+  occasion: "#d97706",
+  food_type: "#16a34a",
+  cuisine: "#2563eb",
+};
+
+function buildMarkerImage(color: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="9" fill="${color}" stroke="white" stroke-width="2"/></svg>`;
+  return new window.kakao.maps.MarkerImage(
+    `data:image/svg+xml,${encodeURIComponent(svg)}`,
+    new window.kakao.maps.Size(24, 24)
+  );
+}
+
+export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendColorAxis }: MapViewProps) {
   const center = useGeolocation();
   const { state } = useCoAgent<AgentState>({ name: "default", initialState: {} });
   const containerRef = useRef<HTMLDivElement>(null);
-  const markerObjsRef = useRef<any[]>([]);
+  const aiMarkerObjsRef = useRef<any[]>([]);
+  const tabMarkerObjsRef = useRef<any[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
   const [map, setMap] = useState<any>(null);
 
-  const markers: MapMarker[] = useMemo(
+  // AI 검색 레이어 — 탭과 무관하게 항상 표시.
+  const aiMarkers: MapMarker[] = useMemo(
+    () => (state.current_places ?? []).map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name })),
+    [state.current_places]
+  );
+
+  // 탭별 레이어 — [추천]이면 recommendMarkers(카테고리 축 색), [기록]이면 recordMarkers(고정색).
+  const tabMarkers: MapMarker[] = useMemo(
     () =>
       activeTab === "recommend"
-        ? (state.current_places ?? []).map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name }))
+        ? recommendMarkers.map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name }))
         : recordMarkers.map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name })),
-    [activeTab, state.current_places, recordMarkers]
+    [activeTab, recommendMarkers, recordMarkers]
   );
+
+  const tabColor =
+    activeTab === "recommend"
+      ? recommendColorAxis
+        ? AXIS_MARKER_COLOR[recommendColorAxis]
+        : RECOMMEND_DEFAULT_COLOR
+      : RECORD_MARKER_COLOR;
 
   // 지도 생성은 SDK 준비 후 한 번만 — 재생성하면 사용자가 옮긴 중심/줌이 날아남.
   useEffect(() => {
@@ -54,16 +88,33 @@ export function MapView({ activeTab, recordMarkers }: MapViewProps) {
 
   useEffect(() => {
     if (!map) return;
-    markerObjsRef.current.forEach((m) => m.setMap(null));
-    markerObjsRef.current = markers.map(
+    aiMarkerObjsRef.current.forEach((m) => m.setMap(null));
+    const image = buildMarkerImage(AI_MARKER_COLOR);
+    aiMarkerObjsRef.current = aiMarkers.map(
       (place) =>
         new window.kakao.maps.Marker({
           position: new window.kakao.maps.LatLng(place.lat, place.lng),
           map,
           title: place.label,
+          image,
         })
     );
-  }, [map, markers]);
+  }, [map, aiMarkers]);
+
+  useEffect(() => {
+    if (!map) return;
+    tabMarkerObjsRef.current.forEach((m) => m.setMap(null));
+    const image = buildMarkerImage(tabColor);
+    tabMarkerObjsRef.current = tabMarkers.map(
+      (place) =>
+        new window.kakao.maps.Marker({
+          position: new window.kakao.maps.LatLng(place.lat, place.lng),
+          map,
+          title: place.label,
+          image,
+        })
+    );
+  }, [map, tabMarkers, tabColor]);
 
   // 모바일에서 .layout-map이 display:none → flex로 전환될 때 컨테이너가 0×0에서
   // 실제 크기로 바뀌는데, Kakao는 window resize에만 자동 relayout하므로 CSS 토글은
