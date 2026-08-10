@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Callable
 
+import audit_log
+
 APPROVAL_TTL = timedelta(minutes=5)
 
 
@@ -61,14 +63,23 @@ def approve(approval_id: str) -> str:
     or ApprovalExpired without any side effect in either case."""
     approval = _pending.get(approval_id)
     if approval is None:
+        audit_log.log_event("approval_decision", approval_id=approval_id, decision="not_found")
         raise ApprovalNotFound(approval_id)
     del _pending[approval_id]
     if datetime.now(timezone.utc) > approval.expires_at:
+        audit_log.log_event(
+            "approval_decision", approval_id=approval_id, action=approval.action, decision="expired"
+        )
         raise ApprovalExpired(approval_id)
-    return approval.execute()
+    result = approval.execute()
+    audit_log.log_event("approval_decision", approval_id=approval_id, action=approval.action, decision="approved")
+    return result
 
 
 def reject(approval_id: str) -> None:
-    if approval_id not in _pending:
+    approval = _pending.get(approval_id)
+    if approval is None:
+        audit_log.log_event("approval_decision", approval_id=approval_id, decision="not_found")
         raise ApprovalNotFound(approval_id)
     del _pending[approval_id]
+    audit_log.log_event("approval_decision", approval_id=approval_id, action=approval.action, decision="rejected")

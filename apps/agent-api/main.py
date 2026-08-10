@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import approvals
+import audit_log
 import categories
 import db
 import kakao
@@ -314,12 +315,28 @@ def reject_approval_endpoint(approval_id: str):
     return {"approval_id": approval_id, "rejected": True}
 
 
-local_agent = Agent(name="local_agent", instructions=INSTRUCTIONS, client=build_local_client(), tools=TOOLS)
+local_agent = Agent(
+    name="local_agent",
+    instructions=INSTRUCTIONS,
+    client=build_local_client(),
+    tools=TOOLS,
+    middleware=[
+        audit_log.AuditAgentMiddleware(provider="local", model=LOCAL_VLLM_MODEL),
+        audit_log.AuditFunctionMiddleware(),
+    ],
+)
 add_agent_framework_fastapi_endpoint(app=app, agent=local_agent, path="/local")
 
 if FOUNDRY_PROJECT_ENDPOINT:
     foundry_agent = Agent(
-        name="foundry_agent", instructions=INSTRUCTIONS, client=build_foundry_client(), tools=TOOLS
+        name="foundry_agent",
+        instructions=INSTRUCTIONS,
+        client=build_foundry_client(),
+        tools=TOOLS,
+        middleware=[
+            audit_log.AuditAgentMiddleware(provider="foundry", model=FOUNDRY_MODEL),
+            audit_log.AuditFunctionMiddleware(),
+        ],
     )
     add_agent_framework_fastapi_endpoint(app=app, agent=foundry_agent, path="/foundry")
 else:
