@@ -19,8 +19,10 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
   const [foodType, setFoodType] = useState<FoodType | "">("");
   const [cuisine, setCuisine] = useState<Cuisine | "">("");
   const [note, setNote] = useState("");
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedCategoryCount = [occasion, foodType, cuisine].filter(Boolean).length;
 
   async function submit() {
     if (!placeName.trim()) return;
@@ -46,6 +48,7 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
       setFoodType("");
       setCuisine("");
       setNote("");
+      setCategoriesOpen(false);
     } catch {
       setError("등록에 실패했습니다. 장소명을 확인해주세요.");
     } finally {
@@ -56,33 +59,75 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
   return (
     <div className="recommendation-form">
       <input type="text" value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder="장소명" />
-      <select value={occasion} onChange={(e) => setOccasion(e.target.value as Occasion | "")}>
-        <option value="">상황 선택 안 함</option>
-        {OCCASIONS.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <select value={foodType} onChange={(e) => setFoodType(e.target.value as FoodType | "")}>
-        <option value="">음식형태 선택 안 함</option>
-        {FOOD_TYPES.map((f) => (
-          <option key={f} value={f}>
-            {f}
-          </option>
-        ))}
-      </select>
-      <select value={cuisine} onChange={(e) => setCuisine(e.target.value as Cuisine | "")}>
-        <option value="">요리종류 선택 안 함</option>
-        {CUISINES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
+      <button
+        type="button"
+        className="category-disclosure"
+        aria-expanded={categoriesOpen}
+        onClick={() => setCategoriesOpen((open) => !open)}
+      >
+        <span>
+          분류 추가
+          {selectedCategoryCount > 0 && <small>{selectedCategoryCount}개 선택</small>}
+        </span>
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="m4 6 4 4 4-4" />
+        </svg>
+      </button>
+      {categoriesOpen && (
+        <div className="category-selector-panel">
+          <div className="category-selector-group">
+            <span className="category-selector-label">상황</span>
+            <div className="category-selector-options">
+              {OCCASIONS.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={occasion === value ? "selected" : ""}
+                  aria-pressed={occasion === value}
+                  onClick={() => setOccasion(occasion === value ? "" : value)}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="category-selector-group">
+            <span className="category-selector-label">음식 형태</span>
+            <div className="category-selector-options">
+              {FOOD_TYPES.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={foodType === value ? "selected" : ""}
+                  aria-pressed={foodType === value}
+                  onClick={() => setFoodType(foodType === value ? "" : value)}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="category-selector-group">
+            <span className="category-selector-label">요리 종류</span>
+            <div className="category-selector-options">
+              {CUISINES.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={cuisine === value ? "selected" : ""}
+                  aria-pressed={cuisine === value}
+                  onClick={() => setCuisine(cuisine === value ? "" : value)}
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="추천 이유 (선택)" />
       {error && <p className="visit-search-error">{error}</p>}
-      <button onClick={submit} disabled={submitting || !placeName.trim()}>
+      <button className="recommendation-submit" onClick={submit} disabled={submitting || !placeName.trim()}>
         추천 등록
       </button>
     </div>

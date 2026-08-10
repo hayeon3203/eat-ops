@@ -1,7 +1,12 @@
 :root {
   --color-primary: #1a6fb0;
   --color-primary-active: #14588c;
-  --color-ink: #33363b;
+  --color-primary-soft: #eaf4fb;
+  --color-primary-faint: #f5f9fc;
+  --color-ink: #202a33;
+  --color-muted: #74808b;
+  --color-line: #e7edf2;
+  --color-surface: #ffffff;
   --tag-occasion: #d97706;
   --tag-food-type: #16a34a;
   --tag-cuisine: #2563eb;
@@ -17,13 +22,34 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--color-ink);
+  background: #f4f7f9;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell,
+.app-shell > div {
+  height: 100%;
+  min-height: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .layout-root {
   height: 100%;
   display: flex;
+  min-height: 0;
+  background: var(--color-surface);
 }
 
 .mobile-view-tabs {
@@ -31,10 +57,13 @@ body {
 }
 
 .layout-sidebar {
-  width: 360px;
+  width: 380px;
   flex-shrink: 0;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--color-line);
   overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 8px 0 28px rgba(23, 55, 76, 0.06);
+  z-index: 2;
 }
 
 .layout-map {
@@ -48,50 +77,209 @@ body {
   height: 100%;
 }
 
+.sidebar-header {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-line);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.sidebar-brand-mark {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: contain;
+}
+
+.model-picker {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.model-picker-trigger {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 11px 0 13px;
+  border: 1px solid #dce6ed;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(34, 63, 82, 0.06);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.model-picker-trigger:hover,
+.model-picker-trigger[aria-expanded="true"] {
+  background: var(--color-primary-faint);
+  border-color: #bfd2df;
+}
+
+.model-picker-trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 111, 176, 0.12);
+}
+
+.model-picker-chevron {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms ease;
+}
+
+.model-picker-trigger[aria-expanded="true"] .model-picker-chevron {
+  transform: rotate(180deg);
+}
+
+.model-picker-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  z-index: 20;
+  padding: 5px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 14px 35px rgba(24, 51, 68, 0.15);
+}
+
+.model-picker-menu > button {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-picker-menu > button:hover,
+.model-picker-menu > button[aria-selected="true"] {
+  background: var(--color-primary-faint);
+}
+
+.model-option-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-option-copy strong {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.model-option-copy small {
+  color: var(--color-muted);
+  font-size: 0.71rem;
+}
+
+.model-option-check {
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .sidebar-tabs {
   display: flex;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 6px;
+  margin: 12px 16px 6px;
+  padding: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: #f5f8fa;
 }
 
 .sidebar-tabs button,
 .mobile-view-tabs button {
   flex: 1;
-  padding: 12px;
+  padding: 9px 12px;
   border: none;
-  background: none;
+  border-radius: 10px;
+  background: transparent;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-muted);
   font-weight: 600;
+  transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .sidebar-tabs button.active,
 .mobile-view-tabs button.active {
   color: var(--color-primary);
-  border-bottom: 2px solid var(--color-primary);
+  background: white;
+  box-shadow: 0 2px 8px rgba(34, 63, 82, 0.09);
 }
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cad7e0 transparent;
 }
 
 .sidebar-empty {
-  padding: 16px;
-  color: #6b7280;
+  margin: 18px 16px;
+  padding: 24px 16px;
+  border-radius: 14px;
+  background: var(--color-primary-faint);
+  color: var(--color-muted);
+  text-align: center;
+  font-size: 0.85rem;
 }
 
 .restaurant-card {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  margin: 8px 12px;
+  padding: 14px 15px;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(34, 63, 82, 0.035);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.restaurant-card:hover {
+  border-color: #cbdce7;
+  box-shadow: 0 7px 20px rgba(34, 63, 82, 0.08);
+  transform: translateY(-1px);
 }
 
 .restaurant-card-name {
-  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.94rem;
+  font-weight: 700;
 }
 
 .restaurant-card-address {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--color-muted);
+  line-height: 1.45;
 }
 
 .restaurant-card-category {
@@ -113,15 +301,18 @@ body {
 .visit-search {
   display: flex;
   gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--color-line);
 }
 
 .visit-search input {
   flex: 1;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #dce6ed;
+  border-radius: 11px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .visit-search button {
@@ -129,9 +320,16 @@ body {
   border: 1px solid var(--color-primary);
   background: white;
   color: var(--color-primary);
-  border-radius: 6px;
+  border-radius: 11px;
   cursor: pointer;
   white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 650;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.visit-search button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
 }
 
 .visit-search button:disabled {
@@ -173,14 +371,14 @@ body {
 .restaurant-card-tags {
   display: flex;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 
 .tag {
   font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
   color: white;
 }
 
@@ -198,20 +396,47 @@ body {
 
 .category-filters {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 15px 16px 17px;
+  border-bottom: 1px solid var(--color-line);
+  background: #fbfcfd;
+}
+
+.category-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.category-filter-label {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.category-filter-options {
+  display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
 }
 
 .category-filters button {
   font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
   background: white;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-muted);
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.category-filters button:hover:not(.active) {
+  color: var(--color-primary);
+  border-color: #bcd2e1;
+  background: var(--color-primary-faint);
 }
 
 .category-filters button.active {
@@ -222,52 +447,189 @@ body {
 .recommendation-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 9px;
+  padding: 12px 16px 15px;
+  border-bottom: 1px solid var(--color-line);
 }
 
 .recommendation-form input,
 .recommendation-form select {
-  padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  min-height: 41px;
+  padding: 9px 11px;
+  border: 1px solid #dce6ed;
+  border-radius: 11px;
+  outline: none;
+  background: white;
+  color: var(--color-ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.recommendation-form button {
+.recommendation-form input:focus,
+.recommendation-form select:focus,
+.visit-search input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 111, 176, 0.1);
+}
+
+.recommendation-submit {
   padding: 8px 12px;
   border: none;
   background: var(--color-primary);
   color: white;
-  border-radius: 6px;
+  min-height: 41px;
+  border-radius: 11px;
   cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(26, 111, 176, 0.18);
+  transition: background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.recommendation-form button:disabled {
+.recommendation-submit:hover:not(:disabled) {
+  background: var(--color-primary-active);
+  box-shadow: 0 6px 16px rgba(26, 111, 176, 0.24);
+  transform: translateY(-1px);
+}
+
+.recommendation-submit:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.recommendation-item {
+.category-disclosure {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  border: 1px solid #dce6ed;
+  border-radius: 11px;
+  background: var(--color-primary-faint);
+  color: var(--color-primary-active);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-align: left;
+}
+
+.category-disclosure > span {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+.category-disclosure small {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.category-disclosure svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms ease;
+}
+
+.category-disclosure[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.category-selector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.category-selector-group {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.category-selector-label {
+  padding-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.category-selector-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.category-selector-options button {
+  padding: 5px 9px;
+  border: 1px solid #dfe7ed;
+  border-radius: 999px;
+  background: white;
+  color: #65727d;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.category-selector-options button:hover {
+  border-color: #abc8dc;
+  color: var(--color-primary);
+}
+
+.category-selector-options button.selected {
+  border-color: #a9cade;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-active);
+  font-weight: 700;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-right: 12px;
+}
+
 .recommendation-item .restaurant-card {
   flex: 1;
+  min-width: 0;
 }
 
 .recommendation-delete {
-  margin-right: 12px;
-  padding: 4px 10px;
-  border: 1px solid #dc2626;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #efc9c9;
   background: white;
   color: #dc2626;
-  border-radius: 6px;
+  border-radius: 9px;
   cursor: pointer;
   font-size: 0.75rem;
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .sidebar-header {
+    min-height: 74px;
+    padding: 10px 14px;
+  }
+
+  .sidebar-brand-mark {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
 }
 
 .recommendation-delete:hover {

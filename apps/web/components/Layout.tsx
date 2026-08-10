@@ -4,11 +4,16 @@ import { useState } from "react";
 import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
 import { AskAvatar } from "./AskAvatar";
-import type { CategoryAxis, Place, Recommendation, SidebarTab, Visit } from "./types";
+import type { CategoryAxis, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
 
 type MobileView = "map" | "list";
 
-export function Layout() {
+interface LayoutProps {
+  provider: Provider;
+  onProviderChange: (provider: Provider) => void;
+}
+
+export function Layout({ provider, onProviderChange }: LayoutProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>("recommend");
   const [mobileView, setMobileView] = useState<MobileView>("map");
   const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
@@ -27,6 +32,8 @@ export function Layout() {
       </div>
       <div className="layout-sidebar">
         <Sidebar
+          provider={provider}
+          onProviderChange={onProviderChange}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onRecordResultsChange={setRecordResults}

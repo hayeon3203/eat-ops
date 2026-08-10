@@ -96,36 +96,51 @@ export function RecommendationList({ onResultsChange }: RecommendationListProps)
     <div>
       <RecommendationForm onAdded={(rec) => setRecommendations((prev) => [rec, ...prev])} />
       <div className="category-filters">
-        {OCCASIONS.map((o) => (
-          <button
-            key={o}
-            className={occasionFilter === o ? "active" : ""}
-            style={occasionFilter === o ? { backgroundColor: AXIS_CSS_VAR.occasion } : undefined}
-            onClick={() => toggleOccasion(o)}
-          >
-            {o}
-          </button>
-        ))}
-        {FOOD_TYPES.map((f) => (
-          <button
-            key={f}
-            className={foodTypeFilter === f ? "active" : ""}
-            style={foodTypeFilter === f ? { backgroundColor: AXIS_CSS_VAR.food_type } : undefined}
-            onClick={() => toggleFoodType(f)}
-          >
-            {f}
-          </button>
-        ))}
-        {CUISINES.map((c) => (
-          <button
-            key={c}
-            className={cuisineFilter === c ? "active" : ""}
-            style={cuisineFilter === c ? { backgroundColor: AXIS_CSS_VAR.cuisine } : undefined}
-            onClick={() => toggleCuisine(c)}
-          >
-            {c}
-          </button>
-        ))}
+        <div className="category-filter-group">
+          <span className="category-filter-label">상황</span>
+          <div className="category-filter-options">
+            {OCCASIONS.map((o) => (
+              <button
+                key={o}
+                className={occasionFilter === o ? "active" : ""}
+                style={occasionFilter === o ? { backgroundColor: AXIS_CSS_VAR.occasion } : undefined}
+                onClick={() => toggleOccasion(o)}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="category-filter-group">
+          <span className="category-filter-label">음식 형태</span>
+          <div className="category-filter-options">
+            {FOOD_TYPES.map((f) => (
+              <button
+                key={f}
+                className={foodTypeFilter === f ? "active" : ""}
+                style={foodTypeFilter === f ? { backgroundColor: AXIS_CSS_VAR.food_type } : undefined}
+                onClick={() => toggleFoodType(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="category-filter-group">
+          <span className="category-filter-label">요리 종류</span>
+          <div className="category-filter-options">
+            {CUISINES.map((c) => (
+              <button
+                key={c}
+                className={cuisineFilter === c ? "active" : ""}
+                style={cuisineFilter === c ? { backgroundColor: AXIS_CSS_VAR.cuisine } : undefined}
+                onClick={() => toggleCuisine(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       {filtered.length === 0 ? (
         <p className="sidebar-empty">등록된 추천이 없습니다.</p>

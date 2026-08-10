@@ -26,6 +26,7 @@ export interface AgentState {
 }
 
 export type SidebarTab = "recommend" | "record";
+export type Provider = "local" | "foundry";
 
 export type Occasion = "점심장소" | "회식장소" | "수고한 나에게";
 export type FoodType = "밥" | "면" | "빵";
