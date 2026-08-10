@@ -76,11 +76,33 @@ def check_get_recommendations_reads_db() -> bool:
         return ok
 
 
+def check_delete_removes_row() -> bool:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db.DB_PATH = Path(tmpdir) / "test4.db"
+        db.init_db()
+        inserted = db.insert_recommendation(
+            kakao_place_id="1",
+            place_name="삭제테스트",
+            address="서울",
+            lat=37.5,
+            lng=127.0,
+            occasion=None,
+            food_type=None,
+            cuisine=None,
+            note="테스트 이유",
+        )
+        result = main.delete_recommendation_endpoint(inserted["id"])
+        ok = result["deleted"] == inserted["id"] and db.list_recommendations() == []
+        print(f"[delete_removes_row] {'ok' if ok else 'FAILED'}")
+        return ok
+
+
 def demo() -> None:
     results = {
         "add_ok": check_add_ok(),
         "add_invalid_category": check_add_invalid_category(),
         "get_recommendations_reads_db": check_get_recommendations_reads_db(),
+        "delete_removes_row": check_delete_removes_row(),
     }
     print("\n=== summary ===")
     for name, ok in results.items():

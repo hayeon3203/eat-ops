@@ -6,6 +6,7 @@ interface RestaurantCardProps {
   occasion?: string | null;
   foodType?: string | null;
   cuisine?: string | null;
+  note?: string | null;
 }
 
 export function RestaurantCard({
@@ -16,6 +17,7 @@ export function RestaurantCard({
   occasion,
   foodType,
   cuisine,
+  note,
 }: RestaurantCardProps) {
   return (
     <div className="restaurant-card">
@@ -29,6 +31,7 @@ export function RestaurantCard({
           {cuisine && <span className="tag tag-cuisine">{cuisine}</span>}
         </div>
       )}
+      {note && <div className="restaurant-card-note">{note}</div>}
       {rating != null && (
         <div className="restaurant-card-rating">
           {"★".repeat(rating)}

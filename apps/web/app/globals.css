@@ -99,6 +99,13 @@ body {
   color: var(--color-primary);
 }
 
+.restaurant-card-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 4px;
+  font-style: italic;
+}
+
 .restaurant-card-rating {
   font-size: 0.8rem;
 }

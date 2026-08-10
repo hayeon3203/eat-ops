@@ -138,6 +138,7 @@ export function RecommendationList({ onResultsChange }: RecommendationListProps)
               occasion={r.occasion}
               foodType={r.food_type}
               cuisine={r.cuisine}
+              note={r.note}
             />
             <button className="recommendation-delete" onClick={() => handleDelete(r)}>
               삭제
