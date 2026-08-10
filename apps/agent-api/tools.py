@@ -18,6 +18,7 @@ import psutil
 from agent_framework import MCPStdioTool, tool
 from agent_framework.ag_ui import state_update
 
+import approvals
 import categories
 import db
 import kakao
@@ -203,6 +204,30 @@ async def record_visit(place_name: str, rating: int, note: str = ""):
         note=note,
     )
     return f"Recorded visit: {place['place_name']} ({place['address']}), rating {rating}/5."
+
+
+@tool
+def mock_risky_action(action: str) -> str:
+    """Request approval for a mock risky action (HITL demo — Plans.md M3).
+
+    Nothing runs immediately — this only registers a pending approval
+    (5-minute expiry) and returns how to confirm it. The "execution" is a
+    fake status string; this never touches anything real.
+
+    Args:
+        action: Free-text description of what to simulate, e.g. "시스템 재시작".
+
+    Returns:
+        Confirmation text with the approval ID and how to approve/reject it.
+    """
+    approval = approvals.create(
+        action, execute=lambda: f"[mock] '{action}' 실행 완료 (시뮬레이션, 실제 변경 없음)"
+    )
+    return (
+        f"승인 필요: '{action}' (approval_id={approval.id}, 5분 내 승인 필요). "
+        f"POST /api/approvals/{approval.id}/approve 로 승인하거나 "
+        f"POST /api/approvals/{approval.id}/reject 로 거절해 주세요."
+    )
 
 
 @tool
