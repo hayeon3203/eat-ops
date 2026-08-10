@@ -116,6 +116,15 @@ export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendC
     );
   }, [map, tabMarkers, tabColor]);
 
+  // 탭 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
+  // 다 보이게 지도를 재조정 — 위 effect와 별개로, geolocation 중심 이동과도 무관.
+  useEffect(() => {
+    if (!map || tabMarkers.length === 0) return;
+    const bounds = new window.kakao.maps.LatLngBounds();
+    tabMarkers.forEach((place) => bounds.extend(new window.kakao.maps.LatLng(place.lat, place.lng)));
+    map.setBounds(bounds);
+  }, [map, tabMarkers]);
+
   // 모바일에서 .layout-map이 display:none → flex로 전환될 때 컨테이너가 0×0에서
   // 실제 크기로 바뀌는데, Kakao는 window resize에만 자동 relayout하므로 CSS 토글은
   // 놓친다. ResizeObserver로 컨테이너 크기 변화를 직접 감지해 relayout을 호출한다.

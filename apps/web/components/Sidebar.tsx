@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RecommendationList } from "./RecommendationList";
 import { VisitList } from "./VisitList";
-import type { CategoryAxis, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
+import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
 
 interface SidebarProps {
   provider: Provider;
@@ -12,6 +12,7 @@ interface SidebarProps {
   onTabChange: (tab: SidebarTab) => void;
   onRecordResultsChange: (items: (Visit | Place)[]) => void;
   onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
+  forcedRecommendOccasion?: { value: Occasion; token: number };
 }
 
 export function Sidebar({
@@ -21,6 +22,7 @@ export function Sidebar({
   onTabChange,
   onRecordResultsChange,
   onRecommendResultsChange,
+  forcedRecommendOccasion,
 }: SidebarProps) {
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -103,7 +105,7 @@ export function Sidebar({
       </div>
       <div className="sidebar-content">
         {activeTab === "recommend" ? (
-          <RecommendationList onResultsChange={onRecommendResultsChange} />
+          <RecommendationList onResultsChange={onRecommendResultsChange} forcedOccasion={forcedRecommendOccasion} />
         ) : (
           <VisitList onResultsChange={onRecordResultsChange} />
         )}

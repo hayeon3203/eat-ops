@@ -19,9 +19,11 @@ const AXIS_CSS_VAR: Record<CategoryAxis, string> = {
 
 interface RecommendationListProps {
   onResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
+  /** Set (with a bumped token) to force the occasion filter open from outside, e.g. the payday popup's map CTA. */
+  forcedOccasion?: { value: Occasion; token: number };
 }
 
-export function RecommendationList({ onResultsChange }: RecommendationListProps) {
+export function RecommendationList({ onResultsChange, forcedOccasion }: RecommendationListProps) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [occasionFilter, setOccasionFilter] = useState<Occasion | null>(null);
   const [foodTypeFilter, setFoodTypeFilter] = useState<FoodType | null>(null);
@@ -34,6 +36,13 @@ export function RecommendationList({ onResultsChange }: RecommendationListProps)
       .then((data: Recommendation[]) => setRecommendations(data))
       .catch(() => setRecommendations([]));
   }, []);
+
+  useEffect(() => {
+    if (!forcedOccasion) return;
+    setOccasionFilter(forcedOccasion.value);
+    setActiveAxis("occasion");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forcedOccasion?.token]);
 
   const filtered = useMemo(
     () =>

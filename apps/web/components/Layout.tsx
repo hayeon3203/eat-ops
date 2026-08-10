@@ -4,7 +4,8 @@ import { useState } from "react";
 import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
 import { AskAvatar } from "./AskAvatar";
-import type { CategoryAxis, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
+import { PaydayPopup } from "./PaydayPopup";
+import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
 
 type MobileView = "map" | "list";
 
@@ -19,6 +20,12 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
   const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
   const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
   const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
+  const [paydayFocus, setPaydayFocus] = useState<{ value: Occasion; token: number } | undefined>(undefined);
+
+  function focusPaydayRecommendations() {
+    setActiveTab("recommend");
+    setPaydayFocus((prev) => ({ value: "수고한 나에게", token: (prev?.token ?? 0) + 1 }));
+  }
 
   return (
     <div className="layout-root" data-mobile-view={mobileView}>
@@ -41,6 +48,7 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
             setRecommendResults(items);
             setRecommendColorAxis(axis);
           }}
+          forcedRecommendOccasion={paydayFocus}
         />
       </div>
       <div className="layout-map">
@@ -52,6 +60,7 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
         />
       </div>
       <AskAvatar />
+      <PaydayPopup onShowOnMap={focusPaydayRecommendations} />
     </div>
   );
 }
