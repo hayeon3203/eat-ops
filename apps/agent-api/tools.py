@@ -237,6 +237,7 @@ async def add_recommendation(
     food_type: str | None = None,
     cuisine: str | None = None,
     note: str = "",
+    price: int | None = None,
 ):
     """Add a shared restaurant recommendation (트랙 D — 맛집 지도 확장).
 
@@ -246,10 +247,14 @@ async def add_recommendation(
 
     Args:
         place_name: Exact place name, e.g. "스시노히든".
-        occasion: One of "점심장소", "회식장소", "수고한 나에게", or omit.
+        occasion: One of "점심장소", "회식장소", "수고한 나에게", or omit. If
+            omitted and price is given, it's inferred from price (13,000원
+            미만 -> 점심장소, 이상 -> 수고한 나에게; 회식장소 is never
+            inferred, only chosen explicitly).
         food_type: One of "밥", "면", "빵", or omit.
         cuisine: One of "한식", "양식", "일식", "중식", "베트남식", "기타", or omit.
         note: Optional one-line reason for the recommendation.
+        price: Menu price in KRW, if the user mentioned one.
 
     Returns:
         Confirmation text, or an error if the place couldn't be found or a
@@ -261,6 +266,9 @@ async def add_recommendation(
         categories.validate_category(cuisine, categories.CUISINES, "cuisine")
     except ValueError as e:
         return str(e)
+
+    if occasion is None:
+        occasion = categories.infer_occasion_from_price(price)
 
     try:
         places = await kakao.search_places(place_name, size=1)
@@ -283,5 +291,6 @@ async def add_recommendation(
         food_type=food_type,
         cuisine=cuisine,
         note=note,
+        price=price,
     )
     return f"Added recommendation: {place['place_name']} ({place['address']})."

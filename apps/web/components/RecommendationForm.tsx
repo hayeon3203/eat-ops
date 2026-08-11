@@ -18,6 +18,7 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
   const [occasion, setOccasion] = useState<Occasion | "">("");
   const [foodType, setFoodType] = useState<FoodType | "">("");
   const [cuisine, setCuisine] = useState<Cuisine | "">("");
+  const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +39,7 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
           food_type: foodType || null,
           cuisine: cuisine || null,
           note,
+          price: price ? Number(price) : null,
         }),
       });
       if (!res.ok) throw new Error(`failed: ${res.status}`);
@@ -47,6 +49,7 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
       setOccasion("");
       setFoodType("");
       setCuisine("");
+      setPrice("");
       setNote("");
       setCategoriesOpen(false);
     } catch {
@@ -76,19 +79,43 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
       {categoriesOpen && (
         <div className="category-selector-panel">
           <div className="category-selector-group">
-            <span className="category-selector-label">상황</span>
-            <div className="category-selector-options">
-              {OCCASIONS.map((value) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={occasion === value ? "selected" : ""}
-                  aria-pressed={occasion === value}
-                  onClick={() => setOccasion(occasion === value ? "" : value)}
-                >
-                  {value}
-                </button>
-              ))}
+            <span className="category-selector-label">
+              상황
+              <span
+                className="info-icon"
+                aria-label="상황 분류 기준 안내"
+                title={
+                  "점심장소: 메뉴 가격 13,000원 미만\n" +
+                  "수고한 나에게: 메뉴 가격 13,000원 이상\n" +
+                  "가격을 입력하면 자동으로 분류되고, 직접 선택하면 그 값이 우선합니다.\n" +
+                  "회식장소는 가격 기준이 없어 직접 선택해야 합니다."
+                }
+              >
+                ⓘ
+              </span>
+            </span>
+            <div className="category-selector-column">
+              <input
+                type="number"
+                className="category-price-input"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="메뉴 가격 (선택, 원)"
+                min={0}
+              />
+              <div className="category-selector-options">
+                {OCCASIONS.map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={occasion === value ? "selected" : ""}
+                    aria-pressed={occasion === value}
+                    onClick={() => setOccasion(occasion === value ? "" : value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="category-selector-group">

@@ -36,7 +36,8 @@ export function Sidebar({
     return () => document.removeEventListener("mousedown", closeModelMenu);
   }, []);
 
-  const selectedModel = provider === "local" ? "로컬 / EXAONE" : "Foundry / GPT-5 mini";
+  const selectedModel =
+    provider === "local" ? "로컬 / EXAONE" : provider === "auto" ? "자동" : "Foundry / GPT-5 mini";
 
   function selectModel(nextProvider: Provider) {
     setIsModelMenuOpen(false);
@@ -60,6 +61,17 @@ export function Sidebar({
               <path d="m4 6 4 4 4-4" />
             </svg>
           </button>
+          <span
+            className="info-icon"
+            aria-label="모델 안내"
+            title={
+              "Foundry: Microsoft Foundry에 배포된 GPT-5 mini\n" +
+              "로컬: GB10의 vLLM으로 서빙되는 EXAONE-3.0-7.8B\n" +
+              "자동: 주민번호·카드번호·API 키 등 민감 정보가 감지되면 로컬로, 그 외는 Foundry로 전송"
+            }
+          >
+            ⓘ
+          </span>
           {isModelMenuOpen && (
             <div
               className="model-picker-menu"
@@ -67,6 +79,18 @@ export function Sidebar({
               aria-label="모델 선택"
               onKeyDown={(event) => event.key === "Escape" && setIsModelMenuOpen(false)}
             >
+              <button
+                type="button"
+                role="option"
+                aria-selected={provider === "auto"}
+                onClick={() => selectModel("auto")}
+              >
+                <span className="model-option-copy">
+                  <strong>자동</strong>
+                  <small>민감 정보는 로컬로, 그 외는 Foundry로</small>
+                </span>
+                {provider === "auto" && <span className="model-option-check">✓</span>}
+              </button>
               <button
                 type="button"
                 role="option"

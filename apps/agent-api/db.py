@@ -60,6 +60,12 @@ def init_db() -> None:
             )
             """
         )
+        try:
+            # Added after the table already shipped — CREATE TABLE IF NOT
+            # EXISTS above doesn't retrofit existing DB files.
+            conn.execute("ALTER TABLE recommendations ADD COLUMN price INTEGER")
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
 
 def insert_visit(
@@ -109,13 +115,14 @@ def insert_recommendation(
     food_type: str | None,
     cuisine: str | None,
     note: str,
+    price: int | None = None,
 ) -> dict[str, Any]:
     with _connect() as conn:
         cur = conn.execute(
             """
             INSERT INTO recommendations
-                (kakao_place_id, place_name, address, lat, lng, occasion, food_type, cuisine, note, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (kakao_place_id, place_name, address, lat, lng, occasion, food_type, cuisine, note, price, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 kakao_place_id,
@@ -127,6 +134,7 @@ def insert_recommendation(
                 food_type,
                 cuisine,
                 note,
+                price,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )

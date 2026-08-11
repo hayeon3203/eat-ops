@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import time
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,19 @@ from agent_framework import (
 )
 
 import cost_guard
+import sensitivity as sensitivity_module
+
+# Set by the /auto endpoint right before it forwards to /local or /foundry
+# in-process (see main.py) — read here so the audit log records the real
+# routing reason instead of always "USER_SELECTED". ContextVar rather than a
+# request header because the forward is an in-process ASGI call in the same
+# coroutine, not a real network hop.
+route_reason_var: ContextVar[str | None] = ContextVar("route_reason", default=None)
+
+
+class PolicyBlocked(Exception):
+    """Raised when a request is denied on sensitivity grounds before it reaches a provider."""
+
 
 AUDIT_LOG_PATH = Path(os.environ.get("AUDIT_LOG_PATH", Path(__file__).parent / "data" / "audit.log"))
 
@@ -74,13 +88,23 @@ class AuditAgentMiddleware(AgentMiddleware):
                 last_user_text = getattr(message, "text", None) or str(message)
                 break
 
+        request_sensitivity = sensitivity_module.detect(last_user_text)
+
         error_code = None
         try:
             if self.provider == "foundry":
                 cost_guard.check_within_cap()  # raises DailyCostCapExceeded if already over
+                if request_sensitivity == "confidential":
+                    # Fail-closed regardless of how /foundry was reached
+                    # (direct user selection or /auto forwarding) — Plans.md
+                    # §7: security policy outranks user mode selection.
+                    raise PolicyBlocked("민감 정보가 포함된 요청은 Foundry로 전송할 수 없습니다.")
             await call_next()
         except cost_guard.DailyCostCapExceeded as exc:
             error_code = type(exc).__name__
+            raise MiddlewareTermination(str(exc)) from exc
+        except PolicyBlocked as exc:
+            error_code = "POLICY_BLOCKED"
             raise MiddlewareTermination(str(exc)) from exc
         except Exception as exc:
             error_code = type(exc).__name__
@@ -111,7 +135,7 @@ class AuditAgentMiddleware(AgentMiddleware):
                 run_id=run_id,
                 provider=self.provider,
                 model=self.model,
-                route_reason="USER_SELECTED",
+                route_reason=route_reason_var.get() or "USER_SELECTED",
                 fallback=False,
                 limited_mode=False,
                 error_code=error_code,
@@ -119,7 +143,7 @@ class AuditAgentMiddleware(AgentMiddleware):
                 token_usage=usage,
                 daily_spend_usd=daily_spend_usd,
                 input_hash=hash_text(last_user_text),
-                sensitivity="unknown",
+                sensitivity=request_sensitivity,
             )
 
 

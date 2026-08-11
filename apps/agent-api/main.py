@@ -13,11 +13,13 @@ import json
 import os
 from contextlib import asynccontextmanager
 
+import httpx
 from agent_framework import Agent
 from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from agent_framework.openai import OpenAIChatCompletionClient
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 import approvals
@@ -25,6 +27,8 @@ import audit_log
 import categories
 import db
 import kakao
+import router as model_router
+import sensitivity
 from tools import (
     add_recommendation,
     build_metmuseum_mcp,
@@ -61,7 +65,11 @@ INSTRUCTIONS = (
     "or '추천 목록에 추가해줘' without describing an actual visit. It takes "
     "optional occasion/food_type/cuisine category values (see its "
     "docstring for the exact allowed values) — only pass ones the user "
-    "actually mentioned, never guess a category. "
+    "actually mentioned, never guess a category. If the user mentions a "
+    "menu price but not an occasion, pass price and leave occasion unset — "
+    "add_recommendation infers 점심장소 vs 수고한 나에게 from the "
+    "13,000원 threshold; 회식장소 must be said explicitly, it's never "
+    "inferred from price. "
     "You also have mock_risky_action, a demo-only tool for actions that "
     "would need human approval before running (nothing it does is actually "
     "risky). Calling it never executes anything by itself — it just "
@@ -250,6 +258,7 @@ class RecommendationIn(BaseModel):
     food_type: str | None = None
     cuisine: str | None = None
     note: str = ""
+    price: int | None = None
 
 
 @app.get("/api/recommendations")
@@ -268,6 +277,8 @@ async def add_recommendation_endpoint(body: RecommendationIn):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    occasion = body.occasion or categories.infer_occasion_from_price(body.price)
+
     try:
         places = await kakao.search_places(body.place_name, size=1)
     except kakao.KakaoQuotaExceededError:
@@ -282,10 +293,11 @@ async def add_recommendation_endpoint(body: RecommendationIn):
         address=place["address"],
         lat=place["lat"],
         lng=place["lng"],
-        occasion=body.occasion,
+        occasion=occasion,
         food_type=body.food_type,
         cuisine=body.cuisine,
         note=body.note,
+        price=body.price,
     )
 
 
@@ -341,6 +353,58 @@ if FOUNDRY_PROJECT_ENDPOINT:
     add_agent_framework_fastapi_endpoint(app=app, agent=foundry_agent, path="/foundry")
 else:
     print("[agent-api] FOUNDRY_PROJECT_ENDPOINT not set — /foundry endpoint disabled")
+
+def _last_user_text(messages: list[dict]) -> str | None:
+    for m in reversed(messages):
+        if m.get("role") != "user":
+            continue
+        content = m.get("content")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            return " ".join(part.get("text", "") for part in content if isinstance(part, dict))
+    return None
+
+
+@app.post("/auto")
+async def auto_endpoint(request: Request) -> StreamingResponse:
+    """ModelRouter entrypoint (Plans.md §6/§7): decides local vs. foundry from
+    message sensitivity, then forwards the AG-UI request in-process to
+    whichever of /local or /foundry already implements the real streaming —
+    no reason to re-implement AG-UI's SSE encoding here."""
+    body = await request.body()
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        payload = {}
+
+    decision = model_router.decide(
+        mode="auto",
+        sensitivity=sensitivity.detect(_last_user_text(payload.get("messages") or [])),
+        foundry_configured=bool(FOUNDRY_PROJECT_ENDPOINT),
+    )
+    target = "/foundry" if decision.provider == "foundry" else "/local"
+    audit_log.route_reason_var.set(decision.reason)
+
+    async def forward():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://internal", timeout=None) as client:
+            async with client.stream("POST", target, content=body, headers={"content-type": "application/json"}) as upstream:
+                async for chunk in upstream.aiter_raw():
+                    yield chunk
+
+    return StreamingResponse(
+        forward(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "X-Route-Provider": decision.provider or "",
+            "X-Route-Reason": decision.reason or "",
+        },
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

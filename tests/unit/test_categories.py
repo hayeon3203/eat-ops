@@ -56,12 +56,24 @@ def check_axis_constants() -> bool:
     return ok
 
 
+def check_infer_occasion_from_price() -> bool:
+    ok = (
+        categories.infer_occasion_from_price(None) is None
+        and categories.infer_occasion_from_price(12_999) == "점심장소"
+        and categories.infer_occasion_from_price(13_000) == "수고한 나에게"
+        and categories.infer_occasion_from_price(0) == "점심장소"
+    )
+    print(f"[infer_occasion_from_price] {'ok' if ok else 'FAILED'}")
+    return ok
+
+
 def demo() -> None:
     results = {
         "none_passes": check_none_passes(),
         "valid_value_passes": check_valid_value_passes(),
         "invalid_value_raises": check_invalid_value_raises(),
         "axis_constants": check_axis_constants(),
+        "infer_occasion_from_price": check_infer_occasion_from_price(),
     }
     print("\n=== summary ===")
     for name, ok in results.items():
