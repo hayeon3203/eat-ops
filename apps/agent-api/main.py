@@ -9,8 +9,10 @@ later; this is still manual selection.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
+import secrets
 from contextlib import asynccontextmanager
 
 import httpx
@@ -19,7 +21,7 @@ from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from agent_framework.openai import OpenAIChatCompletionClient
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 import approvals
@@ -44,6 +46,11 @@ LOCAL_VLLM_MODEL = os.environ.get("LOCAL_VLLM_MODEL", "exaone-3.0-7.8b")
 
 FOUNDRY_PROJECT_ENDPOINT = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
 FOUNDRY_MODEL = os.environ.get("FOUNDRY_MODEL", "gpt-5-mini-1")
+
+# Plans.md Milestone 6 — LAN deployment gate. Unset BASIC_AUTH_PASS keeps
+# this a no-op (local dev on loopback is unaffected).
+BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER", "daol")
+BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS")
 
 INSTRUCTIONS = (
     "You are a helpful assistant. Be concise and friendly. "
@@ -226,6 +233,52 @@ class _FixToolCallOrderMiddleware:
         await self.app(scope, replay_receive, send)
 
 
+class _BasicAuthMiddleware:
+    """Plans.md Milestone 6 — minimal LAN-deployment gate. Native HTTP Basic
+    Auth: the browser prompts once per origin and caches the credential for
+    every later request, so no frontend code needs to carry the passcode
+    (see apps/web/proxy.ts for the matching gate on port 3000). No-op
+    when BASIC_AUTH_PASS is unset. CORS headers are added by hand on the 401
+    itself since this middleware runs outside CORSMiddleware and a bare 401
+    would otherwise look like a CORS failure to the browser instead of an
+    auth prompt.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if not BASIC_AUTH_PASS or scope["type"] != "http" or scope["method"] == "OPTIONS":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope["headers"])
+        auth_header = headers.get(b"authorization", b"").decode("latin-1")
+        valid = False
+        if auth_header.startswith("Basic "):
+            try:
+                decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+                user, _, pw = decoded.partition(":")
+                valid = secrets.compare_digest(user, BASIC_AUTH_USER) and secrets.compare_digest(pw, BASIC_AUTH_PASS)
+            except Exception:
+                valid = False
+
+        if valid:
+            await self.app(scope, receive, send)
+            return
+
+        origin = headers.get(b"origin", b"").decode("latin-1") or "*"
+        response = Response(
+            status_code=401,
+            headers={
+                "WWW-Authenticate": 'Basic realm="daol-fusion"',
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+            },
+        )
+        await response(scope, receive, send)
+
+
 app = FastAPI(title="Foundry Hybrid Agent API", lifespan=lifespan)
 app.add_middleware(_FixToolCallOrderMiddleware)
 app.add_middleware(
@@ -235,10 +288,51 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(_BasicAuthMiddleware)
+
+class VisitIn(BaseModel):
+    """A review posted from a recommendation card. The card already holds the
+    place fields, so unlike RecommendationIn this skips the Kakao lookup —
+    it would be a wasted round-trip against a daily-quota API."""
+
+    kakao_place_id: str
+    place_name: str
+    address: str = ""
+    lat: float | None = None
+    lng: float | None = None
+    rating: int
+    note: str = ""
+    author: str | None = None
+    author_id: str | None = None
+
 
 @app.get("/api/visits")
-def get_visits():
-    return db.list_visits()
+def get_visits(place_id: str | None = None, author_id: str | None = None):
+    return db.list_visits(place_id=place_id, author_id=author_id)
+
+
+@app.post("/api/visits")
+def add_visit_endpoint(body: VisitIn):
+    if not 1 <= body.rating <= 5:
+        raise HTTPException(status_code=400, detail="rating must be between 1 and 5")
+    return db.insert_visit(
+        kakao_place_id=body.kakao_place_id,
+        place_name=body.place_name,
+        address=body.address,
+        lat=body.lat,
+        lng=body.lng,
+        rating=body.rating,
+        note=body.note,
+        author=body.author,
+        author_id=body.author_id,
+    )
+
+
+@app.delete("/api/visits/{visit_id}")
+def delete_visit_endpoint(visit_id: int, author_id: str):
+    if not db.delete_visit(visit_id, author_id=author_id):
+        raise HTTPException(status_code=404, detail="visit not found for this author")
+    return {"deleted": visit_id}
 
 
 @app.get("/api/search")

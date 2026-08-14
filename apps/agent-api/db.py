@@ -60,12 +60,20 @@ def init_db() -> None:
             )
             """
         )
-        try:
-            # Added after the table already shipped — CREATE TABLE IF NOT
-            # EXISTS above doesn't retrofit existing DB files.
-            conn.execute("ALTER TABLE recommendations ADD COLUMN price INTEGER")
-        except sqlite3.OperationalError:
-            pass  # column already exists
+        # Added after the tables already shipped — CREATE TABLE IF NOT EXISTS
+        # above doesn't retrofit existing DB files.
+        for table, column, coltype in (
+            ("recommendations", "price", "INTEGER"),
+            # Review authorship. `author` is display-only; `author_id` (a
+            # localStorage UUID) is the real key, so two browsers landing on
+            # the same random nickname still keep their reviews apart.
+            ("visits", "author", "TEXT"),
+            ("visits", "author_id", "TEXT"),
+        ):
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+            except sqlite3.OperationalError:
+                pass  # column already exists
 
 
 def insert_visit(
@@ -77,12 +85,18 @@ def insert_visit(
     lng: float,
     rating: int | None,
     note: str,
-) -> int:
+    author: str | None = None,
+    author_id: str | None = None,
+) -> dict[str, Any]:
+    """A visit row is also a review: rating + note + author. Rows written by
+    the chat `record_visit` tool leave author/author_id NULL and render as 익명.
+    """
     with _connect() as conn:
         cur = conn.execute(
             """
-            INSERT INTO visits (kakao_place_id, place_name, address, lat, lng, rating, note, visited_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO visits
+                (kakao_place_id, place_name, address, lat, lng, rating, note, author, author_id, visited_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 kakao_place_id,
@@ -92,16 +106,41 @@ def insert_visit(
                 lng,
                 rating,
                 note,
+                author,
+                author_id,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
-        return cur.lastrowid
+        row = conn.execute("SELECT * FROM visits WHERE id = ?", (cur.lastrowid,)).fetchone()
+        return dict(row)
 
 
-def list_visits() -> list[dict[str, Any]]:
+def list_visits(*, place_id: str | None = None, author_id: str | None = None) -> list[dict[str, Any]]:
+    where, params = [], []
+    if place_id is not None:
+        where.append("kakao_place_id = ?")
+        params.append(place_id)
+    if author_id is not None:
+        where.append("author_id = ?")
+        params.append(author_id)
+    sql = "SELECT * FROM visits"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY visited_at DESC"
     with _connect() as conn:
-        rows = conn.execute("SELECT * FROM visits ORDER BY visited_at DESC").fetchall()
-        return [dict(row) for row in rows]
+        return [dict(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def delete_visit(visit_id: int, *, author_id: str) -> bool:
+    """Returns False when the row doesn't exist or belongs to someone else.
+
+    # ponytail: author_id is client-supplied and forgeable — there is no login
+    # to bind it to. This is a UI-level guard for a ~10-person shared-passcode
+    # deployment, not real ownership enforcement. See the spec's security note.
+    """
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM visits WHERE id = ? AND author_id = ?", (visit_id, author_id))
+        return cur.rowcount > 0
 
 
 def insert_recommendation(
@@ -143,8 +182,22 @@ def insert_recommendation(
 
 
 def list_recommendations() -> list[dict[str, Any]]:
+    """Carries each place's review summary so the sidebar can render the
+    `★ 4.3 · 리뷰 3` line without a per-card request. Review bodies are fetched
+    separately (list_visits(place_id=...)) only when a card is expanded."""
     with _connect() as conn:
-        rows = conn.execute("SELECT * FROM recommendations ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            """
+            SELECT r.*,
+                   ROUND(AVG(v.rating), 1) AS rating_avg,
+                   COUNT(v.rating) AS review_count
+            FROM recommendations r
+            LEFT JOIN visits v
+                   ON v.kakao_place_id = r.kakao_place_id AND v.rating IS NOT NULL
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+            """
+        ).fetchall()
         return [dict(row) for row in rows]
 
 

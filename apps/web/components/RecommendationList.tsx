@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RecommendationForm } from "./RecommendationForm";
 import { RestaurantCard } from "./RestaurantCard";
+import { ReviewSection } from "./ReviewSection";
 import type { CategoryAxis, Cuisine, FoodType, Occasion, Recommendation } from "./types";
 
 const AGENT_API_BASE = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8787";
@@ -156,14 +157,17 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
       ) : (
         filtered.map((r) => (
           <div key={r.id} className="recommendation-item">
-            <RestaurantCard
-              name={r.place_name}
-              address={r.address}
-              occasion={r.occasion}
-              foodType={r.food_type}
-              cuisine={r.cuisine}
-              note={r.note}
-            />
+            <div className="recommendation-item-body">
+              <RestaurantCard
+                name={r.place_name}
+                address={r.address}
+                occasion={r.occasion}
+                foodType={r.food_type}
+                cuisine={r.cuisine}
+                note={r.note}
+              />
+              <ReviewSection place={r} />
+            </div>
             <button className="recommendation-delete" onClick={() => handleDelete(r)}>
               삭제
             </button>

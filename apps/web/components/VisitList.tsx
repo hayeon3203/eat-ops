@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getIdentity } from "./nickname";
 import { RestaurantCard } from "./RestaurantCard";
 import type { Place, Visit } from "./types";
 
@@ -10,16 +11,18 @@ interface VisitListProps {
   onResultsChange: (items: (Visit | Place)[]) => void;
 }
 
+/** This tab shows only the reviews written from this browser (matched on the
+ *  localStorage identity). Everyone else's reviews live under their place's
+ *  card in the 추천 tab. */
 export function VisitList({ onResultsChange }: VisitListProps) {
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [nickname, setNickname] = useState("");
   const [query, setQuery] = useState("");
-  const [liveResults, setLiveResults] = useState<Place[] | null>(null);
-  const [liveError, setLiveError] = useState<string | null>(null);
-  const [liveLoading, setLiveLoading] = useState(false);
-  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   useEffect(() => {
-    fetch(`${AGENT_API_BASE}/api/visits`)
+    const identity = getIdentity();
+    setNickname(identity.nickname);
+    fetch(`${AGENT_API_BASE}/api/visits?author_id=${encodeURIComponent(identity.id)}`)
       .then((res) => res.json())
       .then((data: Visit[]) => setVisits(data))
       .catch(() => setVisits([]));
@@ -29,61 +32,37 @@ export function VisitList({ onResultsChange }: VisitListProps) {
     () => visits.filter((v) => v.place_name.includes(query) || v.address.includes(query)),
     [visits, query]
   );
-  const displayed: (Visit | Place)[] = useMemo(() => liveResults ?? filtered, [liveResults, filtered]);
 
   useEffect(() => {
-    onResultsChange(displayed);
+    onResultsChange(filtered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayed]);
-
-  async function searchLive() {
-    if (!query.trim()) return;
-    setLiveLoading(true);
-    setLiveError(null);
-    setQuotaExceeded(false);
-    try {
-      const res = await fetch(`${AGENT_API_BASE}/api/search?q=${encodeURIComponent(query)}`);
-      if (res.status === 429) {
-        setLiveError("오늘 카카오 검색 한도를 초과했습니다.");
-        setQuotaExceeded(true);
-        return;
-      }
-      if (!res.ok) throw new Error(`search failed: ${res.status}`);
-      const data: Place[] = await res.json();
-      setLiveResults(data);
-    } catch {
-      setLiveError("검색에 실패했습니다.");
-    } finally {
-      setLiveLoading(false);
-    }
-  }
+  }, [filtered]);
 
   return (
     <div>
+      <p className="visit-identity">
+        내 닉네임 <strong>{nickname || "…"}</strong>
+      </p>
       <div className="visit-search">
         <input
           type="text"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setLiveResults(null);
-          }}
-          placeholder="방문한 맛집 검색"
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="내 리뷰 검색"
         />
-        <button onClick={searchLive} disabled={liveLoading || quotaExceeded}>
-          카카오에서 더 찾기
-        </button>
       </div>
-      {liveError && <p className="visit-search-error">{liveError}</p>}
-      {displayed.length === 0 ? (
-        <p className="sidebar-empty">방문 기록이 없습니다.</p>
+      {filtered.length === 0 ? (
+        <p className="sidebar-empty">
+          {visits.length === 0 ? "아직 남긴 리뷰가 없습니다." : "검색 결과가 없습니다."}
+        </p>
       ) : (
-        displayed.map((item) => (
+        filtered.map((visit) => (
           <RestaurantCard
-            key={"id" in item ? item.id : item.kakao_place_id}
-            name={item.place_name}
-            address={item.address}
-            rating={"rating" in item ? item.rating : undefined}
+            key={visit.id}
+            name={visit.place_name}
+            address={visit.address}
+            rating={visit.rating}
+            note={visit.note}
           />
         ))
       )}

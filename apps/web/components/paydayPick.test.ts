@@ -15,6 +15,8 @@ function rec(overrides: Partial<Recommendation>): Recommendation {
     cuisine: "한식",
     note: "",
     created_at: "",
+    rating_avg: null,
+    review_count: 0,
     ...overrides,
   };
 }

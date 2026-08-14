@@ -1,3 +1,10 @@
+export interface SelectedPlace {
+  place_name: string;
+  address: string;
+  category?: string;
+  kakao_place_id: string;
+}
+
 export interface Place {
   kakao_place_id: string;
   place_name: string;
@@ -8,6 +15,8 @@ export interface Place {
   place_url: string;
 }
 
+/** A visit row doubles as a review: rating + note + author. Rows written by
+ *  the chat `record_visit` tool have no author and render as 익명. */
 export interface Visit {
   id: number;
   kakao_place_id: string;
@@ -17,6 +26,8 @@ export interface Visit {
   lng: number;
   rating: number | null;
   note: string;
+  author: string | null;
+  author_id: string | null;
   visited_at: string;
 }
 
@@ -45,4 +56,7 @@ export interface Recommendation {
   cuisine: Cuisine | null;
   note: string;
   created_at: string;
+  /** Review summary joined on by GET /api/recommendations; null when unrated. */
+  rating_avg: number | null;
+  review_count: number;
 }

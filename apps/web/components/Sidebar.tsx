@@ -2,8 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RecommendationList } from "./RecommendationList";
+import { RestaurantCard } from "./RestaurantCard";
 import { VisitList } from "./VisitList";
-import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
+import type {
+  CategoryAxis,
+  Occasion,
+  Place,
+  Provider,
+  Recommendation,
+  SelectedPlace,
+  SidebarTab,
+  Visit,
+} from "./types";
 
 interface SidebarProps {
   provider: Provider;
@@ -13,6 +23,8 @@ interface SidebarProps {
   onRecordResultsChange: (items: (Visit | Place)[]) => void;
   onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
   forcedRecommendOccasion?: { value: Occasion; token: number };
+  selectedPlace?: SelectedPlace | null;
+  onClearSelectedPlace?: () => void;
 }
 
 export function Sidebar({
@@ -23,6 +35,8 @@ export function Sidebar({
   onRecordResultsChange,
   onRecommendResultsChange,
   forcedRecommendOccasion,
+  selectedPlace,
+  onClearSelectedPlace,
 }: SidebarProps) {
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -119,12 +133,31 @@ export function Sidebar({
           )}
         </div>
       </header>
+      {selectedPlace && (
+        <div className="sidebar-selected-place">
+          <div className="sidebar-selected-place-header">
+            <span>선택한 장소</span>
+            <button type="button" onClick={onClearSelectedPlace} aria-label="선택 해제">
+              ✕
+            </button>
+          </div>
+          <RestaurantCard name={selectedPlace.place_name} address={selectedPlace.address} category={selectedPlace.category} />
+          <a
+            className="sidebar-selected-place-link"
+            href={`https://place.map.kakao.com/${selectedPlace.kakao_place_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            카카오맵에서 평점·리뷰 보기 ↗
+          </a>
+        </div>
+      )}
       <div className="sidebar-tabs">
         <button className={activeTab === "recommend" ? "active" : ""} onClick={() => onTabChange("recommend")}>
           추천
         </button>
         <button className={activeTab === "record" ? "active" : ""} onClick={() => onTabChange("record")}>
-          기록
+          내 리뷰
         </button>
       </div>
       <div className="sidebar-content">

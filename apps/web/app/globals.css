@@ -207,6 +207,37 @@ select {
   font-weight: 700;
 }
 
+.sidebar-selected-place-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 16px 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.sidebar-selected-place-header button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.sidebar-selected-place-link {
+  display: block;
+  margin: -4px 12px 8px;
+  padding: 0 15px;
+  font-size: 0.78rem;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sidebar-selected-place-link:hover {
+  text-decoration: underline;
+}
+
 .sidebar-tabs {
   display: flex;
   gap: 6px;
@@ -630,18 +661,18 @@ select {
 
 .recommendation-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0;
   padding-right: 12px;
 }
 
-.recommendation-item .restaurant-card {
+.recommendation-item-body {
   flex: 1;
   min-width: 0;
 }
 
 .recommendation-delete {
-  margin: 0;
+  margin: 14px 0 0;
   padding: 6px 10px;
   border: 1px solid #efc9c9;
   background: white;
@@ -668,6 +699,190 @@ select {
 .recommendation-delete:hover {
   background: #dc2626;
   color: white;
+}
+
+/* --- 장소별 리뷰 (별점 + 댓글) --- */
+
+.review-section {
+  margin: -4px 12px 10px;
+}
+
+.review-summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 11px;
+  border: 1px solid #dce6ed;
+  border-radius: 10px;
+  background: var(--color-primary-faint);
+  color: var(--color-primary-active);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 650;
+  text-align: left;
+}
+
+.review-summary > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-summary-stars {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.review-summary-count,
+.review-summary-empty {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.review-summary svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms ease;
+}
+
+.review-summary[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.review-panel {
+  margin-top: 7px;
+  padding: 11px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.review-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.review-stars-input {
+  display: flex;
+  flex-shrink: 0;
+  gap: 1px;
+}
+
+.review-stars-input button {
+  padding: 0 1px;
+  border: none;
+  background: none;
+  color: #d5dee5;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 120ms ease;
+}
+
+.review-stars-input button.selected {
+  color: #f59e0b;
+}
+
+.review-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid #dfe7ed;
+  border-radius: 9px;
+  outline: none;
+  font-size: 0.75rem;
+}
+
+.review-submit {
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border: 1px solid var(--color-primary);
+  border-radius: 9px;
+  background: white;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.review-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.review-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  position: relative;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.review-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+}
+
+.review-item-author {
+  font-weight: 700;
+}
+
+.review-item-stars {
+  color: #f59e0b;
+}
+
+.review-item-date {
+  color: var(--color-muted);
+}
+
+.review-item-note {
+  margin: 3px 0 0;
+  font-size: 0.76rem;
+  color: #6b7280;
+}
+
+.review-item-delete {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  padding: 2px 6px;
+  border: 1px solid #efc9c9;
+  border-radius: 7px;
+  background: white;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 0.68rem;
+}
+
+.review-panel .sidebar-empty {
+  margin: 10px 0 0;
+  padding: 14px;
+  font-size: 0.76rem;
+}
+
+.visit-identity {
+  margin: 0;
+  padding: 12px 16px 0;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}
+
+.visit-identity strong {
+  color: var(--color-primary-active);
 }
 
 .payday-popup-overlay {
