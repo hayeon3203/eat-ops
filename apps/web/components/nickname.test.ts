@@ -27,7 +27,7 @@ describe("generateNickname", () => {
   });
 
   it("reaches the last entry of both lists", () => {
-    expect(generateNickname(() => 0.999)).toBe("더치페이하는 첫손님");
+    expect(generateNickname(() => 0.999)).toBe("야무지게 먹는 첫손님");
   });
 });
 
