@@ -207,6 +207,40 @@ select {
   font-weight: 700;
 }
 
+/* 리뷰까지 들어가면 세로로 길어져서, 스크롤을 패널 안에 가두지 않으면
+   아래의 탭과 목록이 화면 밖으로 밀려난다. */
+.sidebar-selected-place {
+  max-height: 45vh;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.sidebar-selected-place-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 16px 8px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.sidebar-selected-place-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f5f8fa;
+  color: var(--color-muted);
+}
+
+.sidebar-selected-place-phone {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sidebar-selected-place-phone:hover {
+  text-decoration: underline;
+}
+
 .sidebar-selected-place-header {
   display: flex;
   align-items: center;

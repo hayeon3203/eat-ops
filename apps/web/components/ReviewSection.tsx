@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getIdentity } from "./nickname";
-import type { Recommendation, Visit } from "./types";
+import type { Visit } from "./types";
 
 // Same-origin: app/api/agent/[...path] proxies to agent-api and attaches the
 // passcode server-side. Never point this at agent-api's port directly —
@@ -21,12 +21,26 @@ function average(reviews: Visit[]): number | null {
   return Math.round((rated.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rated.length) * 10) / 10;
 }
 
-interface ReviewSectionProps {
-  place: Recommendation;
+/** 리뷰를 붙일 수 있는 최소 장소 모양. Recommendation 전체를 요구하면 지도에서
+ *  고른 장소(occasion/food_type 같은 축이 없다)를 넘길 수 없다. */
+export interface ReviewablePlace {
+  kakao_place_id: string;
+  place_name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  rating_avg: number | null;
+  review_count: number;
 }
 
-export function ReviewSection({ place }: ReviewSectionProps) {
-  const [open, setOpen] = useState(false);
+interface ReviewSectionProps {
+  place: ReviewablePlace;
+  /** 지도에서 고른 장소는 패널이 이미 그 장소만 보여주므로 접어 둘 이유가 없다. */
+  defaultOpen?: boolean;
+}
+
+export function ReviewSection({ place, defaultOpen = false }: ReviewSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const [reviews, setReviews] = useState<Visit[] | null>(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -37,6 +51,29 @@ export function ReviewSection({ place }: ReviewSectionProps) {
   // afterwards the loaded reviews are the fresher source (own posts included).
   const count = reviews ? reviews.filter((r) => r.rating != null).length : place.review_count;
   const avg = reviews ? average(reviews) : place.rating_avg;
+
+  // defaultOpen으로 펼쳐진 채 마운트되면 toggle()이 불리지 않아 리뷰를 못 가져온다.
+  // 장소가 바뀌면(패널에서 다른 마커 클릭) 이전 장소의 리뷰를 버리고 다시 가져온다.
+  useEffect(() => {
+    if (!defaultOpen) return;
+    setReviews(null);
+    setOpen(true);
+    let cancelled = false;
+    fetch(`${AGENT_API_BASE}/api/visits?place_id=${encodeURIComponent(place.kakao_place_id)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`failed: ${res.status}`);
+        return res.json();
+      })
+      .then((rows) => !cancelled && setReviews(rows))
+      .catch(() => {
+        if (cancelled) return;
+        setReviews([]);
+        setError("리뷰를 불러오지 못했습니다.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [defaultOpen, place.kakao_place_id]);
 
   async function toggle() {
     const next = !open;

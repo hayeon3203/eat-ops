@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { RecommendationList } from "./RecommendationList";
 import { RestaurantCard } from "./RestaurantCard";
+import { ReviewSection } from "./ReviewSection";
+import { categoryBadge, formatDistance, haversineMeters } from "./placeMeta";
+import { useGeolocation } from "./useGeolocation";
 import { VisitList } from "./VisitList";
 import type {
   CategoryAxis,
@@ -22,7 +25,8 @@ interface SidebarProps {
   onTabChange: (tab: SidebarTab) => void;
   onRecordResultsChange: (items: (Visit | Place)[]) => void;
   onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
-  forcedRecommendOccasion?: { value: Occasion; token: number };
+  paydayPickIds?: number[] | null;
+  onClearPaydayPicks?: () => void;
   selectedPlace?: SelectedPlace | null;
   onClearSelectedPlace?: () => void;
 }
@@ -34,10 +38,12 @@ export function Sidebar({
   onTabChange,
   onRecordResultsChange,
   onRecommendResultsChange,
-  forcedRecommendOccasion,
+  paydayPickIds,
+  onClearPaydayPicks,
   selectedPlace,
   onClearSelectedPlace,
 }: SidebarProps) {
+  const myLocation = useGeolocation();
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +57,10 @@ export function Sidebar({
   }, []);
 
   const selectedModel = provider === "local" ? "로컬 / EXAONE" : "Foundry / GPT-5 mini";
+  const badge = categoryBadge(selectedPlace?.category);
+  const distance = selectedPlace
+    ? formatDistance(haversineMeters(myLocation, { lat: selectedPlace.lat, lng: selectedPlace.lng }))
+    : "";
 
   function selectModel(nextProvider: Provider) {
     setIsModelMenuOpen(false);
@@ -127,15 +137,39 @@ export function Sidebar({
               ✕
             </button>
           </div>
-          <RestaurantCard name={selectedPlace.place_name} address={selectedPlace.address} category={selectedPlace.category} />
+          <RestaurantCard name={selectedPlace.place_name} address={selectedPlace.address} />
+          <div className="sidebar-selected-place-meta">
+            {badge && <span className="sidebar-selected-place-badge">{badge}</span>}
+            {selectedPlace.phone && (
+              <a className="sidebar-selected-place-phone" href={`tel:${selectedPlace.phone}`}>
+                📞 {selectedPlace.phone}
+              </a>
+            )}
+            <span className="sidebar-selected-place-distance">{distance}</span>
+          </div>
           <a
             className="sidebar-selected-place-link"
             href={`https://place.map.kakao.com/${selectedPlace.kakao_place_id}`}
             target="_blank"
             rel="noopener noreferrer"
           >
-            카카오맵에서 평점·리뷰 보기 ↗
+            카카오맵에서 보기 ↗
           </a>
+          <ReviewSection
+            key={selectedPlace.kakao_place_id}
+            defaultOpen
+            place={{
+              kakao_place_id: selectedPlace.kakao_place_id,
+              place_name: selectedPlace.place_name,
+              address: selectedPlace.address,
+              lat: selectedPlace.lat,
+              lng: selectedPlace.lng,
+              // 패널은 목록의 join 요약을 못 받는다. defaultOpen이라 마운트 직후
+              // fetch한 값이 이 자리를 덮어쓴다 (ReviewSection.tsx의 count/avg).
+              rating_avg: null,
+              review_count: 0,
+            }}
+          />
         </div>
       )}
       <div className="sidebar-tabs">
@@ -148,7 +182,11 @@ export function Sidebar({
       </div>
       <div className="sidebar-content">
         {activeTab === "recommend" ? (
-          <RecommendationList onResultsChange={onRecommendResultsChange} forcedOccasion={forcedRecommendOccasion} />
+          <RecommendationList
+            onResultsChange={onRecommendResultsChange}
+            forcedPickIds={paydayPickIds}
+            onClearForcedPicks={onClearPaydayPicks}
+          />
         ) : (
           <VisitList onResultsChange={onRecordResultsChange} />
         )}
