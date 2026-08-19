@@ -58,7 +58,10 @@ npm run dev   # 기본 127.0.0.1:3000
 1. `apps/agent-api`를 `HOST=0.0.0.0`으로 띄운다.
 2. `apps/web/.env.local`의 `NEXT_PUBLIC_AGENT_API_URL`을 `http://127.0.0.1:8787`이 아니라 실제 접근 가능한 LAN IP(예: `http://172.16.4.228:8787`)로 바꾼다 — 브라우저가 원격 기기에서 열리면 `127.0.0.1`은 접속자 자신의 컴퓨터를 가리켜서 아무것도 못 찾는다. `AGENT_API_URL`(서버용, `NEXT_PUBLIC_` 없는 쪽)은 Next.js 서버와 agent-api가 같은 GB10 위에서 돈다면 `127.0.0.1`로 그대로 둔다.
 3. `apps/web`과 `apps/agent-api` 양쪽에 같은 값으로 `BASIC_AUTH_USER`/`BASIC_AUTH_PASS`를 설정한다 — 인증 없이 LAN에 열어두지 않는다. 미설정 시 게이트가 꺼져 있어 위 두 항목만 바꾸면 인증 없는 상태로 노출되니 주의.
-4. `.env.local`을 바꿨다면 `next dev`를 재시작한다 (env 파일은 부팅 시에만 읽는다).
+4. `next dev`가 아니라 프로덕션 빌드로 띄운다 — `npm run build && npm run start -- -H 0.0.0.0`.
+   `next dev`는 번들을 압축하지 않아서 초기 JS가 43개 청크 15MB에 달한다. 사내망
+   유선 PC는 넘어가지만 휴대폰에서는 그동안 빈 화면만 보인다.
+5. `.env.local`을 바꿨다면 서버를 재시작한다 (env 파일은 부팅 시에만 읽는다).
 
 ## 현재 구현된 기능
 

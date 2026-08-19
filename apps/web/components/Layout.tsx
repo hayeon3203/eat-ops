@@ -16,7 +16,10 @@ interface LayoutProps {
 
 export function Layout({ provider, onProviderChange }: LayoutProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>("recommend");
-  const [mobileView, setMobileView] = useState<MobileView>("map");
+  // 모바일 첫 화면은 리스트. 지도는 SSR에 빈 div로만 나가고(카카오 SDK가 클라이언트에서
+  // 그린다) 좁은 화면에서는 사이드바가 display:none이라, 첫 화면을 지도로 두면 JS가
+  // 다 뜰 때까지 탭 바만 있는 빈 화면이 보인다. 리스트는 SSR로 이미 그려져 있다.
+  const [mobileView, setMobileView] = useState<MobileView>("list");
   const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
   const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
   const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
