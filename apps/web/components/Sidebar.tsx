@@ -25,7 +25,8 @@ interface SidebarProps {
   onTabChange: (tab: SidebarTab) => void;
   onRecordResultsChange: (items: (Visit | Place)[]) => void;
   onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
-  forcedRecommendOccasion?: { value: Occasion; token: number };
+  paydayPickIds?: number[] | null;
+  onClearPaydayPicks?: () => void;
   selectedPlace?: SelectedPlace | null;
   onClearSelectedPlace?: () => void;
 }
@@ -37,7 +38,8 @@ export function Sidebar({
   onTabChange,
   onRecordResultsChange,
   onRecommendResultsChange,
-  forcedRecommendOccasion,
+  paydayPickIds,
+  onClearPaydayPicks,
   selectedPlace,
   onClearSelectedPlace,
 }: SidebarProps) {
@@ -180,7 +182,11 @@ export function Sidebar({
       </div>
       <div className="sidebar-content">
         {activeTab === "recommend" ? (
-          <RecommendationList onResultsChange={onRecommendResultsChange} forcedOccasion={forcedRecommendOccasion} />
+          <RecommendationList
+            onResultsChange={onRecommendResultsChange}
+            forcedPickIds={paydayPickIds}
+            onClearForcedPicks={onClearPaydayPicks}
+          />
         ) : (
           <VisitList onResultsChange={onRecordResultsChange} />
         )}
