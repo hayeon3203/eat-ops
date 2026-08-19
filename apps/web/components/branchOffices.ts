@@ -16,11 +16,11 @@ export interface BranchOffice {
 // 참고: 서울지사 좌표는 useGeolocation.ts의 폴백 좌표(대공빌딩)와 사실상 같은 지점이다.
 // 우연이 아니므로 한쪽을 고칠 때 다른 쪽도 같이 본다.
 export const BRANCH_OFFICES: BranchOffice[] = [
-  { name: "서울지사", lat: 37.4990536, lng: 127.0323059, sizeM: 60, rotationDeg: 0 },
-  { name: "광주지사", lat: 35.154555, lng: 126.849474, sizeM: 60, rotationDeg: 0 },
-  { name: "대전지사", lat: 36.3594186, lng: 127.3789057, sizeM: 60, rotationDeg: 0 },
-  { name: "부산지사", lat: 35.1720592, lng: 129.1284326, sizeM: 60, rotationDeg: 0 },
-  { name: "대구지사", lat: 35.8343778, lng: 128.680734, sizeM: 60, rotationDeg: 0 },
+  { name: "서울지사", lat: 37.4990536, lng: 127.0323059, sizeM: 40, rotationDeg: 0 },
+  { name: "광주지사", lat: 35.154555, lng: 126.849474, sizeM: 40, rotationDeg: 0 },
+  { name: "대전지사", lat: 36.3594186, lng: 127.3789057, sizeM: 40, rotationDeg: 0 },
+  { name: "부산지사", lat: 35.1720592, lng: 129.1284326, sizeM: 40, rotationDeg: 0 },
+  { name: "대구지사", lat: 35.8343778, lng: 128.680734, sizeM: 40, rotationDeg: 0 },
 ];
 
 // 위도 1도 ≈ 111,320m. 경도 1도는 위도에 따라 좁아지므로 cos(위도)를 곱한다.
