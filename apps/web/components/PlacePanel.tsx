@@ -3,16 +3,19 @@
 import { RestaurantCard } from "./RestaurantCard";
 import { ReviewSection } from "./ReviewSection";
 import { categoryBadge, formatDistance, haversineMeters } from "./placeMeta";
-import { useGeolocation } from "./useGeolocation";
 import type { SelectedPlace } from "./types";
 
 interface PlacePanelProps {
   place: SelectedPlace;
   onClose: () => void;
+  // 패널은 열고 닫힐 때마다 마운트/언마운트된다. useGeolocation을 여기서 직접 부르면
+  // 열 때마다 위치를 새로 요청하게 되어, 항상 마운트 상태인 Layout에서 한 번만
+  // 구하고 내려받는다.
+  myLocation: { lat: number; lng: number };
+  locationResolved: boolean;
 }
 
-export function PlacePanel({ place, onClose }: PlacePanelProps) {
-  const { resolved: locationResolved, ...myLocation } = useGeolocation();
+export function PlacePanel({ place, onClose, myLocation, locationResolved }: PlacePanelProps) {
   const badge = categoryBadge(place.category);
   const distance = locationResolved
     ? formatDistance(haversineMeters(myLocation, { lat: place.lat, lng: place.lng }))
