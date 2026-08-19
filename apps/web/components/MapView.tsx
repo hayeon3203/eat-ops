@@ -222,7 +222,11 @@ export function MapView({
         const sidePx = Math.abs(eastPx.x - centerPx.x);
         img.style.width = `${sidePx}px`;
         img.style.height = `${sidePx}px`;
-        // translate가 먼저 와야 자기 중심으로 옮긴 뒤 그 중심을 축으로 회전한다.
+        // 순서 바꾸지 말 것. CSS transform 목록은 오른쪽부터 적용된다 — rotate가 먼저
+        // 자기 중심을 축으로 돌고, 그 다음 translate가 자기 크기의 절반만큼 밀어 중심을
+        // 앵커에 맞춘다. 뒤집어서 rotate(...) translate(...)로 쓰면 회전이 이동에도
+        // 걸려서, 각도를 준 로고가 제자리에서 도는 대신 앵커 주위를 돈다.
+        // 지금은 다섯 지사 모두 rotationDeg가 0이라 뒤집어도 티가 안 난다.
         img.style.transform = `translate(-50%, -50%) rotate(${office.rotationDeg}deg)`;
       });
     }
