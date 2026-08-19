@@ -13,12 +13,13 @@ interface MapMarker {
   address?: string;
   category?: string;
   kakaoId: string;
+  phone?: string;
 }
 
 interface MapViewProps {
   activeTab: SidebarTab;
-  recordMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string }[];
-  recommendMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string }[];
+  recordMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
+  recommendMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
   recommendColorAxis: CategoryAxis | null;
   onMarkerSelect?: (place: SelectedPlace) => void;
 }
@@ -65,6 +66,7 @@ export function MapView({
         address: p.address,
         category: p.category,
         kakaoId: p.kakao_place_id,
+        phone: p.phone ?? undefined,
       })),
     [state.current_places]
   );
@@ -78,14 +80,18 @@ export function MapView({
             lng: p.lng,
             label: p.place_name,
             address: p.address,
+            category: p.category ?? undefined,
             kakaoId: p.kakao_place_id,
+            phone: p.phone ?? undefined,
           }))
         : recordMarkers.map((p) => ({
             lat: p.lat,
             lng: p.lng,
             label: p.place_name,
             address: p.address,
+            category: p.category ?? undefined,
             kakaoId: p.kakao_place_id,
+            phone: p.phone ?? undefined,
           })),
     [activeTab, recommendMarkers, recordMarkers]
   );
@@ -132,7 +138,10 @@ export function MapView({
           place_name: place.label,
           address: place.address ?? "",
           category: place.category,
+          phone: place.phone,
           kakao_place_id: place.kakaoId,
+          lat: place.lat,
+          lng: place.lng,
         })
       );
       return marker;
@@ -151,7 +160,15 @@ export function MapView({
         image,
       });
       window.kakao.maps.event.addListener(marker, "click", () =>
-        onMarkerSelect?.({ place_name: place.label, address: place.address ?? "", kakao_place_id: place.kakaoId })
+        onMarkerSelect?.({
+          place_name: place.label,
+          address: place.address ?? "",
+          category: place.category,
+          phone: place.phone,
+          kakao_place_id: place.kakaoId,
+          lat: place.lat,
+          lng: place.lng,
+        })
       );
       return marker;
     });

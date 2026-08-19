@@ -2,7 +2,11 @@ export interface SelectedPlace {
   place_name: string;
   address: string;
   category?: string;
+  /** Kakao의 등록 전화번호. 예전 DB 행에는 없어 패널이 줄을 숨긴다. */
+  phone?: string;
   kakao_place_id: string;
+  lat: number;
+  lng: number;
 }
 
 export interface Place {
@@ -13,6 +17,7 @@ export interface Place {
   lat: number;
   lng: number;
   place_url: string;
+  phone?: string;
 }
 
 /** A visit row doubles as a review: rating + note + author. Rows written by
@@ -28,6 +33,8 @@ export interface Visit {
   note: string;
   author: string | null;
   author_id: string | null;
+  phone?: string | null;
+  category?: string | null;
   visited_at: string;
 }
 
@@ -62,4 +69,6 @@ export interface Recommendation {
   /** Review summary joined on by GET /api/recommendations; null when unrated. */
   rating_avg: number | null;
   review_count: number;
+  phone?: string | null;
+  category?: string | null;
 }
