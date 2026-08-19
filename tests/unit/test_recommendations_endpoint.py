@@ -24,7 +24,14 @@ from fastapi import HTTPException  # noqa: E402
 
 def check_add_ok() -> bool:
     async def fake_search_places(query, **kwargs):
-        return [kakao.KakaoPlace(kakao_place_id="1", place_name="테스트식당", address="서울", lat=37.5, lng=127.0)]
+        # phone/category present (even if empty) because real search_places
+        # results always carry them via kakao._to_place — this fake mirrors
+        # that shape rather than the pre-Task-1 partial dict.
+        return [
+            kakao.KakaoPlace(
+                kakao_place_id="1", place_name="테스트식당", address="서울", lat=37.5, lng=127.0, phone="", category=""
+            )
+        ]
 
     original_search = kakao.search_places
     kakao.search_places = fake_search_places
