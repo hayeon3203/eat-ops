@@ -75,17 +75,22 @@ async def search_places(
         resp.raise_for_status()
         data = await resp.json()
 
-    places = []
-    for doc in data.get("documents", []):
-        places.append(
-            KakaoPlace(
-                kakao_place_id=doc.get("id", ""),
-                place_name=doc.get("place_name", ""),
-                address=doc.get("road_address_name") or doc.get("address_name", ""),
-                category=doc.get("category_name", ""),
-                lat=float(doc.get("y", 0.0)),
-                lng=float(doc.get("x", 0.0)),
-                place_url=doc.get("place_url", ""),
-            )
-        )
-    return places
+    return [_to_place(doc) for doc in data.get("documents", [])]
+
+
+def _to_place(doc: dict) -> KakaoPlace:
+    """Map one Kakao document to our shape.
+
+    Split out of search_places so the mapping is testable without a network
+    round-trip against a daily-quota API.
+    """
+    return KakaoPlace(
+        kakao_place_id=doc.get("id", ""),
+        place_name=doc.get("place_name", ""),
+        address=doc.get("road_address_name") or doc.get("address_name", ""),
+        category=doc.get("category_name", ""),
+        phone=doc.get("phone", ""),
+        lat=float(doc.get("y", 0.0)),
+        lng=float(doc.get("x", 0.0)),
+        place_url=doc.get("place_url", ""),
+    )

@@ -69,6 +69,12 @@ def init_db() -> None:
             # the same random nickname still keep their reviews apart.
             ("visits", "author", "TEXT"),
             ("visits", "author_id", "TEXT"),
+            # Kakao fields the 선택한 장소 panel shows. Rows written before
+            # this shipped stay NULL — no backfill, the panel hides the line.
+            ("visits", "phone", "TEXT"),
+            ("visits", "category", "TEXT"),
+            ("recommendations", "phone", "TEXT"),
+            ("recommendations", "category", "TEXT"),
         ):
             try:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
@@ -87,6 +93,8 @@ def insert_visit(
     note: str,
     author: str | None = None,
     author_id: str | None = None,
+    phone: str | None = None,
+    category: str | None = None,
 ) -> dict[str, Any]:
     """A visit row is also a review: rating + note + author. Rows written by
     the chat `record_visit` tool leave author/author_id NULL and render as 익명.
@@ -95,8 +103,8 @@ def insert_visit(
         cur = conn.execute(
             """
             INSERT INTO visits
-                (kakao_place_id, place_name, address, lat, lng, rating, note, author, author_id, visited_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (kakao_place_id, place_name, address, lat, lng, rating, note, author, author_id, phone, category, visited_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 kakao_place_id,
@@ -108,6 +116,8 @@ def insert_visit(
                 note,
                 author,
                 author_id,
+                phone,
+                category,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -155,13 +165,15 @@ def insert_recommendation(
     cuisine: str | None,
     note: str,
     price: int | None = None,
+    phone: str | None = None,
+    category: str | None = None,
 ) -> dict[str, Any]:
     with _connect() as conn:
         cur = conn.execute(
             """
             INSERT INTO recommendations
-                (kakao_place_id, place_name, address, lat, lng, occasion, food_type, cuisine, note, price, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (kakao_place_id, place_name, address, lat, lng, occasion, food_type, cuisine, note, price, phone, category, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 kakao_place_id,
@@ -174,6 +186,8 @@ def insert_recommendation(
                 cuisine,
                 note,
                 price,
+                phone,
+                category,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )

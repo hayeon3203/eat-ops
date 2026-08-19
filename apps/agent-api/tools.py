@@ -202,6 +202,8 @@ async def record_visit(place_name: str, rating: int, note: str = ""):
         lng=place["lng"],
         rating=rating,
         note=note,
+        phone=place["phone"],
+        category=place["category"],
     )
     return f"Recorded visit: {place['place_name']} ({place['address']}), rating {rating}/5."
 
@@ -292,5 +294,7 @@ async def add_recommendation(
         cuisine=cuisine,
         note=note,
         price=price,
+        phone=place["phone"],
+        category=place["category"],
     )
     return f"Added recommendation: {place['place_name']} ({place['address']})."

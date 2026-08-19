@@ -2,41 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RecommendationList } from "./RecommendationList";
-import { RestaurantCard } from "./RestaurantCard";
-import { VisitList } from "./VisitList";
-import type {
-  CategoryAxis,
-  Occasion,
-  Place,
-  Provider,
-  Recommendation,
-  SelectedPlace,
-  SidebarTab,
-  Visit,
-} from "./types";
+import type { CategoryAxis, Provider, Recommendation, SelectedPlace } from "./types";
 
 interface SidebarProps {
   provider: Provider;
   onProviderChange: (provider: Provider) => void;
-  activeTab: SidebarTab;
-  onTabChange: (tab: SidebarTab) => void;
-  onRecordResultsChange: (items: (Visit | Place)[]) => void;
   onRecommendResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
-  forcedRecommendOccasion?: { value: Occasion; token: number };
-  selectedPlace?: SelectedPlace | null;
-  onClearSelectedPlace?: () => void;
+  paydayPickIds?: number[] | null;
+  onClearPaydayPicks?: () => void;
+  onSelectPlace?: (place: SelectedPlace) => void;
 }
 
 export function Sidebar({
   provider,
   onProviderChange,
-  activeTab,
-  onTabChange,
-  onRecordResultsChange,
   onRecommendResultsChange,
-  forcedRecommendOccasion,
-  selectedPlace,
-  onClearSelectedPlace,
+  paydayPickIds,
+  onClearPaydayPicks,
+  onSelectPlace,
 }: SidebarProps) {
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -119,39 +102,13 @@ export function Sidebar({
           )}
         </div>
       </header>
-      {selectedPlace && (
-        <div className="sidebar-selected-place">
-          <div className="sidebar-selected-place-header">
-            <span>선택한 장소</span>
-            <button type="button" onClick={onClearSelectedPlace} aria-label="선택 해제">
-              ✕
-            </button>
-          </div>
-          <RestaurantCard name={selectedPlace.place_name} address={selectedPlace.address} category={selectedPlace.category} />
-          <a
-            className="sidebar-selected-place-link"
-            href={`https://place.map.kakao.com/${selectedPlace.kakao_place_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            카카오맵에서 평점·리뷰 보기 ↗
-          </a>
-        </div>
-      )}
-      <div className="sidebar-tabs">
-        <button className={activeTab === "recommend" ? "active" : ""} onClick={() => onTabChange("recommend")}>
-          추천
-        </button>
-        <button className={activeTab === "record" ? "active" : ""} onClick={() => onTabChange("record")}>
-          내 리뷰
-        </button>
-      </div>
       <div className="sidebar-content">
-        {activeTab === "recommend" ? (
-          <RecommendationList onResultsChange={onRecommendResultsChange} forcedOccasion={forcedRecommendOccasion} />
-        ) : (
-          <VisitList onResultsChange={onRecordResultsChange} />
-        )}
+        <RecommendationList
+          onResultsChange={onRecommendResultsChange}
+          forcedPickIds={paydayPickIds}
+          onClearForcedPicks={onClearPaydayPicks}
+          onSelect={onSelectPlace}
+        />
       </div>
     </div>
   );

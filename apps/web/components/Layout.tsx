@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
+import { PlacePanel } from "./PlacePanel";
 import { AskAvatar } from "./AskAvatar";
 import { PaydayPopup } from "./PaydayPopup";
-import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SelectedPlace, SidebarTab, Visit } from "./types";
+import { useGeolocation } from "./useGeolocation";
+import type { PaydayPick } from "./paydayPick";
+import type { CategoryAxis, Provider, Recommendation, SelectedPlace } from "./types";
 
 type MobileView = "map" | "list";
 
@@ -15,20 +18,22 @@ interface LayoutProps {
 }
 
 export function Layout({ provider, onProviderChange }: LayoutProps) {
-  const [activeTab, setActiveTab] = useState<SidebarTab>("recommend");
   // 모바일 첫 화면은 리스트. 지도는 SSR에 빈 div로만 나가고(카카오 SDK가 클라이언트에서
   // 그린다) 좁은 화면에서는 사이드바가 display:none이라, 첫 화면을 지도로 두면 JS가
   // 다 뜰 때까지 탭 바만 있는 빈 화면이 보인다. 리스트는 SSR로 이미 그려져 있다.
   const [mobileView, setMobileView] = useState<MobileView>("list");
-  const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
   const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
   const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
-  const [paydayFocus, setPaydayFocus] = useState<{ value: Occasion; token: number } | undefined>(undefined);
+  const [paydayPickIds, setPaydayPickIds] = useState<number[] | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+  // Layout은 항상 마운트돼 있으므로 여기서 한 번만 요청한다. PlacePanel은 열고
+  // 닫힐 때마다 마운트/언마운트되어, 거기서 직접 부르면 열 때마다 위치를 재요청했다.
+  const { resolved: locationResolved, ...myLocation } = useGeolocation();
 
-  function focusPaydayRecommendations() {
-    setActiveTab("recommend");
-    setPaydayFocus((prev) => ({ value: "수고한 나에게", token: (prev?.token ?? 0) + 1 }));
+  // 팝업이 고른 3곳만 지도에 남긴다. 상황 필터(7곳)로 넓히면 팝업이 뽑아준 의미가
+  // 사라져서, 리스트도 지도도 그 3곳으로 좁힌다.
+  function focusPaydayRecommendations(picks: PaydayPick[]) {
+    setPaydayPickIds(picks.map((p) => p.place.id));
   }
 
   return (
@@ -45,24 +50,30 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
         <Sidebar
           provider={provider}
           onProviderChange={onProviderChange}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onRecordResultsChange={setRecordResults}
           onRecommendResultsChange={(items, axis) => {
             setRecommendResults(items);
             setRecommendColorAxis(axis);
           }}
-          forcedRecommendOccasion={paydayFocus}
-          selectedPlace={selectedPlace}
-          onClearSelectedPlace={() => setSelectedPlace(null)}
+          paydayPickIds={paydayPickIds}
+          onClearPaydayPicks={() => setPaydayPickIds(null)}
+          onSelectPlace={setSelectedPlace}
         />
       </div>
+      {selectedPlace && (
+        <div className="layout-place-panel">
+          <PlacePanel
+            place={selectedPlace}
+            onClose={() => setSelectedPlace(null)}
+            myLocation={myLocation}
+            locationResolved={locationResolved}
+          />
+        </div>
+      )}
       <div className="layout-map">
         <MapView
-          activeTab={activeTab}
-          recordMarkers={recordResults}
           recommendMarkers={recommendResults}
           recommendColorAxis={recommendColorAxis}
+          paydayMode={paydayPickIds !== null}
           onMarkerSelect={setSelectedPlace}
         />
       </div>

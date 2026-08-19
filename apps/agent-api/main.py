@@ -311,6 +311,8 @@ class VisitIn(BaseModel):
     note: str = ""
     author: str | None = None
     author_id: str | None = None
+    phone: str | None = None
+    category: str | None = None
 
 
 @app.get("/api/visits")
@@ -332,6 +334,8 @@ def add_visit_endpoint(body: VisitIn):
         note=body.note,
         author=body.author,
         author_id=body.author_id,
+        phone=body.phone,
+        category=body.category,
     )
 
 
@@ -399,6 +403,8 @@ async def add_recommendation_endpoint(body: RecommendationIn):
         cuisine=body.cuisine,
         note=body.note,
         price=body.price,
+        phone=place["phone"],
+        category=place["category"],
     )
 
 

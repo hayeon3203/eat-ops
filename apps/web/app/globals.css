@@ -66,6 +66,17 @@ select {
   z-index: 2;
 }
 
+/* 선택한 장소가 있을 때만 렌더되는 세 번째 컬럼 — 없으면 지도가 폭을 되찾는다. */
+.layout-place-panel {
+  width: 340px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-line);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 8px 0 28px rgba(23, 55, 76, 0.06);
+  z-index: 2;
+}
+
 .layout-map {
   flex: 1;
   position: relative;
@@ -207,6 +218,40 @@ select {
   font-weight: 700;
 }
 
+/* 상세 컬럼 전체를 채운다 — 사이드바 안에 얹혀 있을 때와 달리 아래에 다른 것이
+   없어 높이 제한이 필요 없다. 리뷰까지 들어가 내용이 길어지면 컬럼 안에서만
+   스크롤된다. */
+.sidebar-selected-place {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sidebar-selected-place-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 16px 8px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.sidebar-selected-place-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f5f8fa;
+  color: var(--color-muted);
+}
+
+.sidebar-selected-place-phone {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sidebar-selected-place-phone:hover {
+  text-decoration: underline;
+}
+
 .sidebar-selected-place-header {
   display: flex;
   align-items: center;
@@ -238,17 +283,6 @@ select {
   text-decoration: underline;
 }
 
-.sidebar-tabs {
-  display: flex;
-  gap: 6px;
-  margin: 12px 16px 6px;
-  padding: 4px;
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
-  background: #f5f8fa;
-}
-
-.sidebar-tabs button,
 .mobile-view-tabs button {
   flex: 1;
   padding: 9px 12px;
@@ -261,7 +295,6 @@ select {
   transition: color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
-.sidebar-tabs button.active,
 .mobile-view-tabs button.active {
   color: var(--color-primary);
   background: white;
@@ -329,45 +362,6 @@ select {
   font-size: 0.8rem;
 }
 
-.visit-search {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.visit-search input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid #dce6ed;
-  border-radius: 11px;
-  outline: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.visit-search button {
-  padding: 8px 12px;
-  border: 1px solid var(--color-primary);
-  background: white;
-  color: var(--color-primary);
-  border-radius: 11px;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 0.78rem;
-  font-weight: 650;
-  transition: color 160ms ease, background 160ms ease;
-}
-
-.visit-search button:hover:not(:disabled) {
-  background: var(--color-primary-soft);
-}
-
-.visit-search button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .visit-search-error {
   padding: 0 16px;
   color: #dc2626;
@@ -376,6 +370,7 @@ select {
 
 @media (max-width: 768px) {
   .layout-root {
+    position: relative;
     flex-direction: column;
   }
 
@@ -396,6 +391,14 @@ select {
 
   .layout-root[data-mobile-view="list"] .layout-map {
     display: none;
+  }
+
+  /* 리스트/지도 위에 전체 폭으로 덮는 오버레이 — 별도 컬럼 폭(340px)을 버린다. */
+  .layout-place-panel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    z-index: 3;
   }
 }
 
@@ -496,8 +499,7 @@ select {
 }
 
 .recommendation-form input:focus,
-.recommendation-form select:focus,
-.visit-search input:focus {
+.recommendation-form select:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(26, 111, 176, 0.1);
 }
@@ -669,6 +671,12 @@ select {
 .recommendation-item-body {
   flex: 1;
   min-width: 0;
+}
+
+/* RestaurantCard만 감싼다 — 형제인 ReviewSection의 별점·삭제 버튼까지
+   삼키지 않으려면 recommendation-item-body 전체에 걸면 안 된다. */
+.recommendation-card-select {
+  cursor: pointer;
 }
 
 .recommendation-delete {
@@ -874,17 +882,6 @@ select {
   font-size: 0.76rem;
 }
 
-.visit-identity {
-  margin: 0;
-  padding: 12px 16px 0;
-  color: var(--color-muted);
-  font-size: 0.76rem;
-}
-
-.visit-identity strong {
-  color: var(--color-primary-active);
-}
-
 .payday-popup-overlay {
   position: fixed;
   inset: 0;
@@ -1021,4 +1018,25 @@ select {
   font-size: 0.78rem;
   cursor: pointer;
   text-decoration: underline;
+}
+
+/* 지사 사각형 위 이름 라벨. pointer-events: none 없으면 이 CustomOverlay의 DOM이
+   지도 드래그를 가로챈다 — 폴리곤 자체는 clickable: false로 막지만 라벨은 별도 처리 필요. */
+.branch-office-label {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(32, 42, 51, 0.72);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 크기는 미터→픽셀 환산 결과를 MapView가 매번 style.width/height로 직접 지정한다 —
+   줌마다 바뀌는 값이라 여기 고정 폭/높이를 두지 않는다. */
+.branch-office-logo {
+  opacity: 0.7;
+  pointer-events: none;
+  display: block;
 }

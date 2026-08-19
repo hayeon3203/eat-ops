@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RecommendationForm } from "./RecommendationForm";
 import { RestaurantCard } from "./RestaurantCard";
 import { ReviewSection } from "./ReviewSection";
-import type { CategoryAxis, Cuisine, FoodType, Occasion, Recommendation } from "./types";
+import type { CategoryAxis, Cuisine, FoodType, Occasion, Recommendation, SelectedPlace } from "./types";
 
 // Same-origin: app/api/agent/[...path] proxies to agent-api and attaches the
 // passcode server-side. Never point this at agent-api's port directly —
@@ -23,11 +23,33 @@ const AXIS_CSS_VAR: Record<CategoryAxis, string> = {
 
 interface RecommendationListProps {
   onResultsChange: (items: Recommendation[], activeColorAxis: CategoryAxis | null) => void;
-  /** Set (with a bumped token) to force the occasion filter open from outside, e.g. the payday popup's map CTA. */
-  forcedOccasion?: { value: Occasion; token: number };
+  /** Recommendation ids the payday popup picked; when set the list shows only those.
+   *  Any filter click clears it via onClearForcedPicks so the picks never stick. */
+  forcedPickIds?: number[] | null;
+  onClearForcedPicks?: () => void;
+  /** 카드 클릭 시 상세 컬럼을 연다. Recommendation은 SelectedPlace가 필요로 하는
+   *  필드를 전부 갖고 있다. */
+  onSelect?: (place: SelectedPlace) => void;
 }
 
-export function RecommendationList({ onResultsChange, forcedOccasion }: RecommendationListProps) {
+function toSelectedPlace(rec: Recommendation): SelectedPlace {
+  return {
+    place_name: rec.place_name,
+    address: rec.address,
+    category: rec.category ?? undefined,
+    phone: rec.phone ?? undefined,
+    kakao_place_id: rec.kakao_place_id,
+    lat: rec.lat,
+    lng: rec.lng,
+  };
+}
+
+export function RecommendationList({
+  onResultsChange,
+  forcedPickIds,
+  onClearForcedPicks,
+  onSelect,
+}: RecommendationListProps) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [occasionFilter, setOccasionFilter] = useState<Occasion | null>(null);
   const [foodTypeFilter, setFoodTypeFilter] = useState<FoodType | null>(null);
@@ -41,22 +63,16 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
       .catch(() => setRecommendations([]));
   }, []);
 
-  useEffect(() => {
-    if (!forcedOccasion) return;
-    setOccasionFilter(forcedOccasion.value);
-    setActiveAxis("occasion");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forcedOccasion?.token]);
-
   const filtered = useMemo(
     () =>
       recommendations.filter(
         (r) =>
+          (!forcedPickIds || forcedPickIds.includes(r.id)) &&
           (!occasionFilter || r.occasion === occasionFilter) &&
           (!foodTypeFilter || r.food_type === foodTypeFilter) &&
           (!cuisineFilter || r.cuisine === cuisineFilter)
       ),
-    [recommendations, occasionFilter, foodTypeFilter, cuisineFilter]
+    [recommendations, forcedPickIds, occasionFilter, foodTypeFilter, cuisineFilter]
   );
 
   useEffect(() => {
@@ -65,6 +81,7 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
   }, [filtered, activeAxis]);
 
   function toggleOccasion(value: Occasion) {
+    onClearForcedPicks?.();
     if (occasionFilter === value) {
       setOccasionFilter(null);
       setActiveAxis(null);
@@ -75,6 +92,7 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
   }
 
   function toggleFoodType(value: FoodType) {
+    onClearForcedPicks?.();
     if (foodTypeFilter === value) {
       setFoodTypeFilter(null);
       setActiveAxis(null);
@@ -85,6 +103,7 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
   }
 
   function toggleCuisine(value: Cuisine) {
+    onClearForcedPicks?.();
     if (cuisineFilter === value) {
       setCuisineFilter(null);
       setActiveAxis(null);
@@ -161,14 +180,19 @@ export function RecommendationList({ onResultsChange, forcedOccasion }: Recommen
         filtered.map((r) => (
           <div key={r.id} className="recommendation-item">
             <div className="recommendation-item-body">
-              <RestaurantCard
-                name={r.place_name}
-                address={r.address}
-                occasion={r.occasion}
-                foodType={r.food_type}
-                cuisine={r.cuisine}
-                note={r.note}
-              />
+              <div
+                className="recommendation-card-select"
+                onClick={() => onSelect?.(toSelectedPlace(r))}
+              >
+                <RestaurantCard
+                  name={r.place_name}
+                  address={r.address}
+                  occasion={r.occasion}
+                  foodType={r.food_type}
+                  cuisine={r.cuisine}
+                  note={r.note}
+                />
+              </div>
               <ReviewSection place={r} />
             </div>
             <button className="recommendation-delete" onClick={() => handleDelete(r)}>
