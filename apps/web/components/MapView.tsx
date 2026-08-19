@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { useGeolocation } from "./useGeolocation";
-import type { AgentState, CategoryAxis, SelectedPlace, SidebarTab } from "./types";
+import type { AgentState, CategoryAxis, SelectedPlace } from "./types";
 
 interface MapMarker {
   lat: number;
@@ -17,8 +17,6 @@ interface MapMarker {
 }
 
 interface MapViewProps {
-  activeTab: SidebarTab;
-  recordMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
   recommendMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
   recommendColorAxis: CategoryAxis | null;
   /** 월급날 팝업이 고른 3곳을 보고 있는 동안은 핀 대신 아바타로 표시한다. */
@@ -27,7 +25,6 @@ interface MapViewProps {
 }
 
 const AI_MARKER_COLOR = "#e0435c";
-const RECORD_MARKER_COLOR = "#7c5cbf";
 const RECOMMEND_DEFAULT_COLOR = "#1a6fb0";
 const AXIS_MARKER_COLOR: Record<CategoryAxis, string> = {
   occasion: "#d97706",
@@ -65,8 +62,6 @@ function toSelectedPlace(place: MapMarker): SelectedPlace {
 }
 
 export function MapView({
-  activeTab,
-  recordMarkers,
   recommendMarkers,
   recommendColorAxis,
   paydayMode,
@@ -76,11 +71,11 @@ export function MapView({
   const { state } = useCoAgent<AgentState>({ name: "default", initialState: {} });
   const containerRef = useRef<HTMLDivElement>(null);
   const aiMarkerObjsRef = useRef<any[]>([]);
-  const tabMarkerObjsRef = useRef<any[]>([]);
+  const recommendMarkerObjsRef = useRef<any[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
   const [map, setMap] = useState<any>(null);
 
-  // AI 검색 레이어 — 탭과 무관하게 항상 표시.
+  // AI 검색 레이어 — 항상 표시.
   const aiMarkers: MapMarker[] = useMemo(
     () =>
       (state.current_places ?? []).map((p) => ({
@@ -95,37 +90,22 @@ export function MapView({
     [state.current_places]
   );
 
-  // 탭별 레이어 — [추천]이면 recommendMarkers(카테고리 축 색), [기록]이면 recordMarkers(고정색).
+  // 추천 레이어.
   const tabMarkers: MapMarker[] = useMemo(
     () =>
-      activeTab === "recommend"
-        ? recommendMarkers.map((p) => ({
-            lat: p.lat,
-            lng: p.lng,
-            label: p.place_name,
-            address: p.address,
-            category: p.category ?? undefined,
-            kakaoId: p.kakao_place_id,
-            phone: p.phone ?? undefined,
-          }))
-        : recordMarkers.map((p) => ({
-            lat: p.lat,
-            lng: p.lng,
-            label: p.place_name,
-            address: p.address,
-            category: p.category ?? undefined,
-            kakaoId: p.kakao_place_id,
-            phone: p.phone ?? undefined,
-          })),
-    [activeTab, recommendMarkers, recordMarkers]
+      recommendMarkers.map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        label: p.place_name,
+        address: p.address,
+        category: p.category ?? undefined,
+        kakaoId: p.kakao_place_id,
+        phone: p.phone ?? undefined,
+      })),
+    [recommendMarkers]
   );
 
-  const tabColor =
-    activeTab === "recommend"
-      ? recommendColorAxis
-        ? AXIS_MARKER_COLOR[recommendColorAxis]
-        : RECOMMEND_DEFAULT_COLOR
-      : RECORD_MARKER_COLOR;
+  const recommendColor = recommendColorAxis ? AXIS_MARKER_COLOR[recommendColorAxis] : RECOMMEND_DEFAULT_COLOR;
 
   // 지도 생성은 SDK 준비 후 한 번만 — 재생성하면 사용자가 옮긴 중심/줌이 날아남.
   useEffect(() => {
@@ -166,9 +146,9 @@ export function MapView({
 
   useEffect(() => {
     if (!map) return;
-    tabMarkerObjsRef.current.forEach((m) => m.setMap(null));
-    const image = paydayMode ? buildAvatarMarkerImage() : buildMarkerImage(tabColor);
-    tabMarkerObjsRef.current = tabMarkers.map((place) => {
+    recommendMarkerObjsRef.current.forEach((m) => m.setMap(null));
+    const image = paydayMode ? buildAvatarMarkerImage() : buildMarkerImage(recommendColor);
+    recommendMarkerObjsRef.current = tabMarkers.map((place) => {
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(place.lat, place.lng),
         map,
@@ -180,9 +160,9 @@ export function MapView({
       );
       return marker;
     });
-  }, [map, tabMarkers, tabColor, paydayMode, onMarkerSelect]);
+  }, [map, tabMarkers, recommendColor, paydayMode, onMarkerSelect]);
 
-  // 탭 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
+  // 추천 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
   // 다 보이게 지도를 재조정 — 위 effect와 별개로, geolocation 중심 이동과도 무관.
   useEffect(() => {
     if (!map || tabMarkers.length === 0) return;

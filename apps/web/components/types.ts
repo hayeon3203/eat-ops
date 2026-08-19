@@ -43,7 +43,6 @@ export interface AgentState {
   kakao_quota_exceeded?: boolean;
 }
 
-export type SidebarTab = "recommend" | "record";
 // agent-api still exposes /auto (Plans.md M4 ModelRouter); it's just not
 // offered in the UI — with only two providers wired, "자동" always resolved to
 // the same place as an explicit pick and read as a broken option.
