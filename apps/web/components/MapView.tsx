@@ -42,9 +42,11 @@ function buildMarkerImage(color: string) {
 }
 
 function buildAvatarMarkerImage() {
-  // 원본 GIF는 256x256. offset을 명시해 사각 이미지의 아래 중앙이 좌표에 닿게 한다.
+  // 배경을 살린 팝업용 GIF와 달리 마커에는 투명 배경본을 쓴다 — 지도 타일 위에
+  // 흰 사각형이 얹히면 안 된다. 원본 256x256, offset을 명시해 사각 이미지의 아래
+  // 중앙이 좌표에 닿게 한다.
   return new window.kakao.maps.MarkerImage(
-    "/food-picker-avatar-rice-pin-floating.gif",
+    "/food-picker-avatar-rice-pin-floating-transparent-preserved.gif",
     new window.kakao.maps.Size(48, 48),
     { offset: new window.kakao.maps.Point(24, 48) }
   );
