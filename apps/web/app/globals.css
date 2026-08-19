@@ -1032,3 +1032,11 @@ select {
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* 크기는 미터→픽셀 환산 결과를 MapView가 매번 style.width/height로 직접 지정한다 —
+   줌마다 바뀌는 값이라 여기 고정 폭/높이를 두지 않는다. */
+.branch-office-logo {
+  opacity: 0.5;
+  pointer-events: none;
+  display: block;
+}

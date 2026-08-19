@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { useGeolocation } from "./useGeolocation";
-import { BRANCH_OFFICES, rectangleCorners } from "./branchOffices";
+import { BRANCH_OFFICES, metersToLatLngDelta } from "./branchOffices";
 import type { AgentState, CategoryAxis, SelectedPlace } from "./types";
 
 interface MapMarker {
@@ -165,24 +165,29 @@ export function MapView({
   }, [map, tabMarkers, recommendColor, paydayMode, onMarkerSelect]);
 
   // 지사 5곳 — 검색 결과도 추천도 아닌 고정 배경 정보라 상수 데이터([map] 하나에만) 의존.
-  // 사각형·라벨 모두 클릭 대상이 아니므로 clickable: false / pointer-events: none으로
-  // 지도 드래그와 맛집 마커 클릭을 그대로 통과시킨다.
+  // 카카오에는 이미지 지상 오버레이 API가 없어 CustomOverlay에 <img>를 담고 px 크기를
+  // 직접 계산한다: 중심과 그 동쪽/북쪽으로 widthM/heightM 떨어진 지점을 projection으로
+  // 컨테이너 좌표로 변환하면 그 차이가 곧 폭/높이의 픽셀 값이다. 줌이 바뀌면 미터당
+  // 픽셀 비율도 바뀌므로 zoom_changed 때마다 다시 계산 — 리스너는 지도 레벨이라
+  // 이 effect가 직접 붙였고, 사이블링 마커 effect들과 달리 setMap(null)만으로는
+  // 안 지워지므로 cleanup에서 removeListener로 반드시 뗀다.
+  // 로고·라벨 모두 pointer-events: none이라 지도 드래그와 맛집 마커 클릭을 통과시킨다.
   useEffect(() => {
     if (!map) return;
     branchOfficeObjsRef.current.forEach((obj) => obj.setMap(null));
-    branchOfficeObjsRef.current = BRANCH_OFFICES.flatMap((office) => {
-      const path = rectangleCorners(office).map(
-        (c) => new window.kakao.maps.LatLng(c.lat, c.lng)
-      );
-      const polygon = new window.kakao.maps.Polygon({
+
+    const entries = BRANCH_OFFICES.map((office) => {
+      const img = document.createElement("img");
+      img.src = "/daol-icon.png";
+      img.alt = "";
+      img.className = "branch-office-logo";
+
+      const logo = new window.kakao.maps.CustomOverlay({
         map,
-        path,
-        strokeWeight: 2,
-        strokeColor: "#5b6b7a",
-        strokeOpacity: 0.8,
-        fillColor: "#8fa3b3",
-        fillOpacity: 0.35,
-        clickable: false,
+        position: new window.kakao.maps.LatLng(office.lat, office.lng),
+        content: img,
+        xAnchor: 0.5,
+        yAnchor: 0.5,
       });
       const label = new window.kakao.maps.CustomOverlay({
         map,
@@ -190,8 +195,36 @@ export function MapView({
         content: `<div class="branch-office-label">${office.name}</div>`,
         yAnchor: 0.5,
       });
-      return [polygon, label];
+      return { office, img, logo, label };
     });
+
+    branchOfficeObjsRef.current = entries.flatMap((e) => [e.logo, e.label]);
+
+    function resizeLogos() {
+      const projection = map.getProjection();
+      entries.forEach(({ office, img }) => {
+        const center = new window.kakao.maps.LatLng(office.lat, office.lng);
+        const eastDelta = metersToLatLngDelta(office.lat, office.widthM, 0);
+        const northDelta = metersToLatLngDelta(office.lat, 0, office.heightM);
+        const eastPoint = new window.kakao.maps.LatLng(office.lat + eastDelta.dLat, office.lng + eastDelta.dLng);
+        const northPoint = new window.kakao.maps.LatLng(office.lat + northDelta.dLat, office.lng + northDelta.dLng);
+
+        const centerPx = projection.pointFromCoords(center);
+        const eastPx = projection.pointFromCoords(eastPoint);
+        const northPx = projection.pointFromCoords(northPoint);
+
+        img.style.width = `${Math.abs(eastPx.x - centerPx.x)}px`;
+        img.style.height = `${Math.abs(centerPx.y - northPx.y)}px`;
+        img.style.transform = `rotate(${office.rotationDeg}deg)`;
+      });
+    }
+
+    resizeLogos();
+    window.kakao.maps.event.addListener(map, "zoom_changed", resizeLogos);
+
+    return () => {
+      window.kakao.maps.event.removeListener(map, "zoom_changed", resizeLogos);
+    };
   }, [map]);
 
   // 추천 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이

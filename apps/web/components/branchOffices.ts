@@ -31,39 +31,18 @@ export const BRANCH_OFFICES: BranchOffice[] = [
 export const METERS_PER_DEG_LAT = 111_320;
 
 /**
- * 지사 하나를 중심 + 폭/길이/회전각으로부터 사각형 네 꼭짓점(위경도)으로 편다.
+ * 위도 lat 지점에서 동쪽으로 eastM, 북쪽으로 northM 떨어진 지점의 위경도 차이를 구한다.
  * Kakao 타입을 전혀 참조하지 않는 순수 함수 — 브라우저 없이 테스트하기 위함.
- * MapView가 반환값을 kakao.maps.LatLng로 변환해 그린다.
- *
- * 반환 순서는 좌상단→우상단→우하단→좌하단(시계방향)으로 고정한다 — 폴리곤이
- * 자기 자신과 교차하지 않게 하려면 꼭짓점이 한 방향으로만 감겨야 한다.
+ * MapView가 지사 중심과 이 함수로 구한 점을 각각 projection에 넣어 픽셀 크기를 계산한다.
  */
-export function rectangleCorners(office: BranchOffice): { lat: number; lng: number }[] {
-  const halfW = office.widthM / 2;
-  const halfH = office.heightM / 2;
-
-  // 회전 전 로컬 좌표(x=동쪽, y=북쪽), 중심 기준 좌상단→우상단→우하단→좌하단.
-  const localCorners = [
-    { x: -halfW, y: halfH },
-    { x: halfW, y: halfH },
-    { x: halfW, y: -halfH },
-    { x: -halfW, y: -halfH },
-  ];
-
-  const rad = (office.rotationDeg * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-
-  // 시계방향 회전(x=동, y=북인 좌표계에서 각도가 커질수록 시계 방향으로 돈다):
-  // 표준 반시계 회전행렬의 부호를 뒤집은 형태. x' = x·cosθ + y·sinθ, y' = -x·sinθ + y·cosθ.
-  const metersPerDegLng = METERS_PER_DEG_LAT * Math.cos((office.lat * Math.PI) / 180);
-
-  return localCorners.map(({ x, y }) => {
-    const rx = x * cos + y * sin;
-    const ry = -x * sin + y * cos;
-    return {
-      lat: office.lat + ry / METERS_PER_DEG_LAT,
-      lng: office.lng + rx / metersPerDegLng,
-    };
-  });
+export function metersToLatLngDelta(
+  lat: number,
+  eastM: number,
+  northM: number
+): { dLat: number; dLng: number } {
+  const metersPerDegLng = METERS_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
+  return {
+    dLat: northM / METERS_PER_DEG_LAT,
+    dLng: eastM / metersPerDegLng,
+  };
 }
