@@ -1019,3 +1019,16 @@ select {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* 지사 사각형 위 이름 라벨. pointer-events: none 없으면 이 CustomOverlay의 DOM이
+   지도 드래그를 가로챈다 — 폴리곤 자체는 clickable: false로 막지만 라벨은 별도 처리 필요. */
+.branch-office-label {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(32, 42, 51, 0.72);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}

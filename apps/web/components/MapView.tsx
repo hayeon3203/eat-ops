@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { useGeolocation } from "./useGeolocation";
+import { BRANCH_OFFICES, rectangleCorners } from "./branchOffices";
 import type { AgentState, CategoryAxis, SelectedPlace } from "./types";
 
 interface MapMarker {
@@ -72,6 +73,7 @@ export function MapView({
   const containerRef = useRef<HTMLDivElement>(null);
   const aiMarkerObjsRef = useRef<any[]>([]);
   const recommendMarkerObjsRef = useRef<any[]>([]);
+  const branchOfficeObjsRef = useRef<any[]>([]);
   const [sdkReady, setSdkReady] = useState(false);
   const [map, setMap] = useState<any>(null);
 
@@ -161,6 +163,36 @@ export function MapView({
       return marker;
     });
   }, [map, tabMarkers, recommendColor, paydayMode, onMarkerSelect]);
+
+  // 지사 5곳 — 검색 결과도 추천도 아닌 고정 배경 정보라 상수 데이터([map] 하나에만) 의존.
+  // 사각형·라벨 모두 클릭 대상이 아니므로 clickable: false / pointer-events: none으로
+  // 지도 드래그와 맛집 마커 클릭을 그대로 통과시킨다.
+  useEffect(() => {
+    if (!map) return;
+    branchOfficeObjsRef.current.forEach((obj) => obj.setMap(null));
+    branchOfficeObjsRef.current = BRANCH_OFFICES.flatMap((office) => {
+      const path = rectangleCorners(office).map(
+        (c) => new window.kakao.maps.LatLng(c.lat, c.lng)
+      );
+      const polygon = new window.kakao.maps.Polygon({
+        map,
+        path,
+        strokeWeight: 2,
+        strokeColor: "#5b6b7a",
+        strokeOpacity: 0.8,
+        fillColor: "#8fa3b3",
+        fillOpacity: 0.35,
+        clickable: false,
+      });
+      const label = new window.kakao.maps.CustomOverlay({
+        map,
+        position: new window.kakao.maps.LatLng(office.lat, office.lng),
+        content: `<div class="branch-office-label">${office.name}</div>`,
+        yAnchor: 0.5,
+      });
+      return [polygon, label];
+    });
+  }, [map]);
 
   // 추천 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
   // 다 보이게 지도를 재조정 — 위 effect와 별개로, geolocation 중심 이동과도 무관.
