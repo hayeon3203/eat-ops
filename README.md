@@ -71,7 +71,7 @@ npm run dev   # 기본 127.0.0.1:3000
 ## 알려진 제한사항
 
 - 멀티테넌시 없음 — 방문기록·추천은 전체 공유(SQLite, 사용자 구분 없음). `BASIC_AUTH_PASS` 설정 시 공유 passcode 게이트는 있지만(Plans.md M6) 사용자별 세션 분리는 아님
-- `auto` 모드/`ModelRouter` 자동 라우팅 없음 — provider는 항상 수동 선택
+- UI에서 provider는 항상 수동 선택 — `ModelRouter`(`router.py`)와 `/auto` 엔드포인트는 agent-api에 존재하지만 모델 선택 메뉴에는 노출하지 않는다(provider가 둘뿐이라 `auto`가 명시 선택과 같은 곳으로만 갔다)
 - 민감도 판정, cloud 차단 정책 미구현 — 어떤 요청이든 사용자가 고른 provider로 그대로 감
 - 대화 세션은 프로세스 메모리에만 존재, 재시작하면 사라짐(전문 로깅도 안 함)
 - 위험 도구 승인(HITL) 흐름은 진행 중

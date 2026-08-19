@@ -37,7 +37,10 @@ export interface AgentState {
 }
 
 export type SidebarTab = "recommend" | "record";
-export type Provider = "local" | "foundry" | "auto";
+// agent-api still exposes /auto (Plans.md M4 ModelRouter); it's just not
+// offered in the UI — with only two providers wired, "자동" always resolved to
+// the same place as an explicit pick and read as a broken option.
+export type Provider = "local" | "foundry";
 
 export type Occasion = "점심장소" | "회식장소" | "수고한 나에게";
 export type FoodType = "밥" | "면" | "빵";

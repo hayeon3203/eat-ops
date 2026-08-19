@@ -6,7 +6,7 @@ import { Layout } from "@/components/Layout";
 import type { Provider } from "@/components/types";
 
 export default function Home() {
-  const [provider, setProvider] = useState<Provider>("auto");
+  const [provider, setProvider] = useState<Provider>("local");
 
   return (
     <main className="app-shell">
