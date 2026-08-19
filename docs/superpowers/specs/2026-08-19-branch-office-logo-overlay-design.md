@@ -37,8 +37,13 @@
 
 ### `branchOffices.ts`
 
-`BranchOffice` 인터페이스와 `BRANCH_OFFICES` 테이블은 그대로다 — `widthM` / `heightM` /
-`rotationDeg` 모두 계속 쓰인다. 다섯 숫자를 눈으로 보정한다는 성격도 그대로다.
+`BRANCH_OFFICES` 테이블은 그대로 두되, `widthM` / `heightM`을 **한 값 `sizeM`으로 합친다.**
+로고 원본(`daol-icon.png`)이 141×141 정사각이라 두 값이 다르면 이미지가 찌그러진다.
+한 값으로 두면 비율이 구조적으로 보장되고, 나중에 한쪽만 고쳐서 다시 찌그러뜨릴 수도 없다.
+`rotationDeg`는 그대로 쓴다. 눈으로 보정하는 값이라는 성격도 그대로다.
+
+픽셀 크기도 한 변만 재서 가로·세로에 같이 넣는다 — 두 축을 따로 재면 투영 오차만큼
+미세하게 찌그러진다.
 
 `rectangleCorners`는 삭제한다. 꼭짓점 네 개가 더는 필요 없다.
 
@@ -69,7 +74,9 @@ export function metersToLatLngDelta(
 
 ### 스타일
 
-로고 불투명도 50%. 크기는 JS가 px로 직접 지정하므로 CSS에서는 정하지 않는다.
+로고 불투명도 70%. 크기는 JS가 px로 직접 지정하므로 CSS에서는 정하지 않는다.
+
+`sizeM`은 지도에서 보며 60 → 40 → 20으로 줄여 정착했다. 건물마다 다르게 줘도 된다.
 
 ## 검증
 
