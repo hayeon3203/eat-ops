@@ -49,7 +49,7 @@ export function ModelPicker({ provider, onProviderChange }: ModelPickerProps) {
         aria-label="모델 안내"
         title={
           "Foundry: Microsoft Foundry에 배포된 GPT-5 mini\n" +
-          "로컬: GB10의 vLLM으로 서빙되는 EXAONE-3.0-7.8B"
+          "로컬: GB10의 vLLM으로 서빙되는 EXAONE-4.0-32B (FP8)"
         }
       >
         ⓘ
@@ -81,7 +81,7 @@ export function ModelPicker({ provider, onProviderChange }: ModelPickerProps) {
           >
             <span className="model-option-copy">
               <strong>로컬</strong>
-              <small>EXAONE · GB10 vLLM</small>
+              <small>EXAONE 4.0 · GB10 vLLM</small>
             </span>
             {provider === "local" && <span className="model-option-check">✓</span>}
           </button>

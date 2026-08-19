@@ -23,7 +23,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 | 변수 | 설명 | 기본값 |
 |---|---|---|
 | `LOCAL_VLLM_BASE_URL` | GB10 vLLM OpenAI 호환 endpoint | `http://127.0.0.1:8000/v1` |
-| `LOCAL_VLLM_MODEL` | 로컬 모델 ID | `exaone-3.0-7.8b` |
+| `LOCAL_VLLM_MODEL` | 로컬 모델 ID | `exaone-4.0-32b` |
 | `FOUNDRY_PROJECT_ENDPOINT` | Foundry 프로젝트 endpoint. 없으면 `/foundry` 비활성화 | (없음) |
 | `FOUNDRY_MODEL` | Foundry 배포 모델 이름 | `gpt-5-mini-1` |
 | `SEARXNG_BASE_URL` | SearXNG 인스턴스 | `http://127.0.0.1:8081` |

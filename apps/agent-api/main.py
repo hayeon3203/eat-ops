@@ -50,7 +50,8 @@ from tools import (  # noqa: E402
 )
 
 LOCAL_VLLM_BASE_URL = os.environ.get("LOCAL_VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
-LOCAL_VLLM_MODEL = os.environ.get("LOCAL_VLLM_MODEL", "exaone-3.0-7.8b")
+# infra/local/start-vllm.sh의 --served-model-name과 같아야 한다.
+LOCAL_VLLM_MODEL = os.environ.get("LOCAL_VLLM_MODEL", "exaone-4.0-32b")
 
 FOUNDRY_PROJECT_ENDPOINT = os.environ.get("FOUNDRY_PROJECT_ENDPOINT")
 FOUNDRY_MODEL = os.environ.get("FOUNDRY_MODEL", "gpt-5-mini-1")
