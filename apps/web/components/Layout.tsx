@@ -83,6 +83,7 @@ export function Layout({ provider, onProviderChange, chatOpen, onChatOpenChange 
           paydayMode={paydayPickIds !== null}
           onMarkerSelect={setSelectedPlace}
           focusPlace={selectedPlace}
+          mobileView={mobileView}
         />
       </div>
       <AskAvatar

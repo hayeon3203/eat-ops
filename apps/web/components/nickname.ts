@@ -41,6 +41,18 @@ export function generateNickname(random: () => number = Math.random): string {
   return `${pick(MODIFIERS, random)} ${pick(NOUNS, random)}`;
 }
 
+/** crypto.randomUUID는 보안 컨텍스트(HTTPS 또는 localhost)에서만 존재한다. 폰에서
+ *  LAN 주소(http://172.16.x.x:3000)로 열면 undefined라 호출하는 순간 TypeError가 났고,
+ *  ReviewSection이 렌더 중에 getIdentity()를 부르기 때문에 장소를 하나 고르는 것만으로
+ *  앱 전체가 에러 화면("This page couldn't load")으로 넘어갔다. getRandomValues는
+ *  http에서도 있으므로 없을 때만 그걸로 만든다. id는 사람이 볼 일 없는 불투명한 키라
+ *  UUID 형식을 지킬 이유는 없다. */
+function randomId(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Reads the stored identity, minting and persisting one on first call. */
 export function getIdentity(): Identity {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -52,7 +64,7 @@ export function getIdentity(): Identity {
       // Corrupted entry — fall through and mint a fresh one.
     }
   }
-  const identity: Identity = { id: crypto.randomUUID(), nickname: generateNickname() };
+  const identity: Identity = { id: randomId(), nickname: generateNickname() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
   return identity;
 }

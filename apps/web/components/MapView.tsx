@@ -24,12 +24,15 @@ interface MapViewProps {
   onMarkerSelect?: (place: SelectedPlace) => void;
   /** 선택된 장소. 모바일 바텀시트가 아래를 덮으므로 그만큼 지도를 밀어준다. */
   focusPlace?: SelectedPlace | null;
+  /** 좁은 화면에서 지금 보이는 탭. 지도 탭으로 돌아올 때마다 기준 화면을 다시 잡는다. */
+  mobileView?: "map" | "list";
 }
 
 // 지도 첫 화면은 항상 서울지사. 예전에는 useGeolocation 값을 중심으로 썼는데,
 // 사용자가 어디에 있든 서울지사가 기준이어야 한다는 요구라 상수로 고정한다.
 // (거리 라벨과 챗의 "내 주변"은 여전히 실제 좌표를 쓴다 — Layout/AskAvatar 참고.)
 const DEFAULT_CENTER = BRANCH_OFFICES[0];
+const DEFAULT_LEVEL = 5;
 
 // globals.css의 모바일 .layout-place-panel 높이(58vh)와 같은 값. 시트가 가린 만큼
 // 마커를 위로 올리는 데 쓴다 — 한쪽만 고치면 선택한 마커가 시트 뒤로 숨는다.
@@ -81,6 +84,7 @@ export function MapView({
   paydayMode,
   onMarkerSelect,
   focusPlace,
+  mobileView,
 }: MapViewProps) {
   const { state } = useCoAgent<AgentState>({ name: "default", initialState: {} });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,7 +133,7 @@ export function MapView({
     window.kakao.maps.load(() => {
       const instance = new window.kakao.maps.Map(containerRef.current, {
         center: new window.kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng),
-        level: 5,
+        level: DEFAULT_LEVEL,
       });
       setMap(instance);
     });
@@ -280,6 +284,23 @@ export function MapView({
       projection.coordsFromPoint(new window.kakao.maps.Point(point.x, point.y + sheetPx / 2))
     );
   }, [map, focusPlace]);
+
+  // 리스트 탭에서 지도 탭으로 돌아올 때마다 기준 화면(서울지사, 레벨 5)을 다시 박는다.
+  // 지도가 display:none인 동안 벌어지는 일이 두 가지 있고 둘 다 첫 화면을 덮는다:
+  // relayout()이 좌상단을 붙들어 중심이 남동쪽으로 밀리고, 추천 fetch가 지도 생성보다
+  // 늦게 도착하면 아래 setBounds가 전국 bounds(레벨 14)를 잡는다. 중심을 지키려고
+  // 애쓰는 것보다 전환 시점에 기준점을 다시 박는 쪽이 두 경우 모두 확실하다.
+  //
+  // 데스크톱은 지도와 리스트가 동시에 보여 탭 전환 자체가 없다. 월급날 "지도에서 보기"가
+  // mobileView를 map으로 바꾸긴 하지만, 그 3곳의 setBounds는 추천 목록이 좁혀진 다음
+  // 렌더에서 일어나므로 이 effect보다 뒤에 와서 덮어쓴다.
+  useEffect(() => {
+    if (!map || mobileView !== "map") return;
+    if (!window.matchMedia(MOBILE_QUERY).matches) return;
+    map.relayout();
+    map.setLevel(DEFAULT_LEVEL);
+    map.setCenter(new window.kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng));
+  }, [map, mobileView]);
 
   // 모바일에서 .layout-map이 display:none → flex로 전환될 때 컨테이너가 0×0에서
   // 실제 크기로 바뀌는데, Kakao는 window resize에만 자동 relayout하므로 CSS 토글은
