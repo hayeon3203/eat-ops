@@ -17,7 +17,12 @@ export function proxy(request: NextRequest) {
   if (auth) {
     const [, encoded] = auth.split(" ");
     const [user, pass] = atob(encoded ?? "").split(":");
-    if (user === USER && pass === PASS) return NextResponse.next();
+    // 사용자명은 대소문자·앞뒤 공백을 무시한다. 휴대폰 키보드가 사용자명 칸을
+    // 건드려서(자동 대문자화, 앞뒤 공백) 비밀번호가 맞는데도 401이 반복되는 일이
+    // 있었다. 사용자명은 비밀이 아니라 느슨하게 봐도 되지만, 비밀번호는 아래처럼
+    // 정확히 일치해야 한다. 자동완성이 글자를 덧붙이는 경우(daol -> daolts)까지는
+    // 여기서 못 막는다 — 네이티브 Basic Auth 대화상자는 입력 힌트를 줄 수 없다.
+    if (user?.trim().toLowerCase() === USER.toLowerCase() && pass === PASS) return NextResponse.next();
   }
 
   return new NextResponse("Authentication required", {
@@ -27,5 +32,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // 파비콘은 브라우저가 인증 헤더 없이 가져가므로 게이트에서 빼야 한다. 앱은
+  // favicon.ico가 아니라 app/icon.png를 쓰는데 여기 빠져 있어서 계속 401이었다.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png).*)"],
 };
