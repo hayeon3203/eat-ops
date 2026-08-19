@@ -75,15 +75,17 @@ overflow-y: auto`를 준다 — 없으면 아래의 탭과 목록이 화면 밖�
 | `apps/agent-api/kakao.py:80-89` | `phone=doc.get("phone", "")` 추가 |
 | `apps/agent-api/db.py:65-72` ALTER 루프 | `visits.phone`, `visits.category`, `recommendations.phone`, `recommendations.category` 4줄 추가 |
 | `apps/agent-api/db.py:79`, `:146` | `insert_visit` / `insert_recommendation`에 `phone`·`category` 키워드 인자 (기본값 `None`) + INSERT 컬럼 |
-| `apps/agent-api/main.py:316,365` | `GET /api/visits`, `GET /api/recommendations` 응답에 두 필드 포함 |
-| `apps/agent-api/main.py:321,370` | `VisitIn` 및 추천 등록 Pydantic 모델에 `phone`·`category` 옵션 필드 추가 후 `insert_*`로 전달 |
-| `apps/agent-api/tools.py:196-199` | `record_visit`은 이미 `KakaoPlace`를 들고 있으므로 `insert_visit`에 phone·category 같이 넘김 |
+| `apps/agent-api/main.py:300` | `VisitIn`에 `phone`·`category` 옵션 필드 추가 후 `insert_visit`로 전달 |
+| `apps/agent-api/main.py:390` | `POST /api/recommendations`는 서버가 직접 카카오를 조회하므로(`main.py:384`) 조회 결과의 phone·category를 그대로 넘김 — 프론트 payload 변경 불필요 |
+| `apps/agent-api/tools.py:196`, `:283` | `record_visit`·`add_recommendation` 둘 다 `KakaoPlace`를 들고 있으므로 insert에 phone·category 같이 넘김 |
+
+`GET /api/visits`·`GET /api/recommendations`는 손댈 것이 없다 — `db.list_*`가 `SELECT *`라
+(`db.py:126`, `:191`) 새 컬럼이 자동으로 응답에 실린다.
 | `components/types.ts` | `SelectedPlace`에 `lat`, `lng`, `phone?` 추가 (`category?`는 이미 있음) / `Visit`·`Recommendation`·`Place`에 `phone?`, `category?` |
 | `components/MapView.tsx:131-136, 154` | 마커 payload에 `lat`, `lng`, `phone`, `category` 실음 |
 | `components/ReviewSection.tsx:24-26` | prop 타입을 `Recommendation`에서 실제로 쓰는 7필드만 가진 좁은 타입으로 완화 (`kakao_place_id`, `place_name`, `address`, `lat`, `lng`, `rating_avg`, `review_count`). 기존 호출부(`RecommendationList.tsx:172`)는 그대로 통과 |
-| `components/RecommendationForm.tsx` | 추천 등록 payload에 선택한 장소의 phone·category 포함 |
 | `components/Sidebar.tsx` | 패널 렌더 + `useGeolocation()` 호출 + 거리 표시 |
-| `components/distance.ts` (신규) | `haversineMeters(a, b)` 한 함수 |
+| `components/placeMeta.ts` (신규) | `haversineMeters(a, b)`, `categoryBadge(categoryName)` |
 | `app/globals.css` | 패널 스크롤·배지·메타줄 스타일 |
 
 ### 리뷰 요약값의 출처
@@ -107,15 +109,17 @@ overflow-y: auto`를 준다 — 없으면 아래의 탭과 목록이 화면 밖�
 
 ## 3. 검증
 
-비자명한 로직은 `haversineMeters`와 카테고리 배지 파싱 둘뿐이다. 기존
-`nickname.test.ts` / `paydayPick.test.ts` 패턴대로 `components/distance.test.ts` 하나에
-assert를 둔다:
+비자명한 로직은 `haversineMeters`와 카테고리 배지 파싱 둘뿐이다. 둘 다
+`components/placeMeta.ts`에 두고, 기존 `nickname.test.ts` / `paydayPick.test.ts` 패턴대로
+vitest 파일 `components/placeMeta.test.ts` 하나에 assert를 둔다:
 
-- 서울시청(37.5665, 126.9780) ↔ 강남역(37.4979, 127.0276) ≈ 8.3km — 오차 200m 이내
+- 서울시청(37.5665, 126.9780) ↔ 강남역(37.4979, 127.0276) ≈ 8.8km — 8500~9100m 범위 assert
+  (구현 변형에 안 깨지도록 정확값 대신 범위)
 - 같은 좌표 두 개 → 0
+- `"음식점 > 한식 > 국밥"` → `"한식 › 국밥"`, 한 토막 입력은 그대로 통과
 
-카테고리 파싱은 `"음식점 > 한식 > 국밥" → "한식 › 국밥"`, 한 토막 입력은 그대로 통과하는
-assert를 같은 파일에 붙인다.
+백엔드 쪽은 pytest가 아니라 기존 `tests/unit/*.py`의 수동 `demo()` 자기점검 패턴을 따른다
+(`check_*()`가 bool 반환, `demo()`가 전부 assert).
 
 수동 확인: AI 검색 마커 클릭(전화·배지 뜸) / 기록 마커 클릭(빈칸 줄 숨김) / 리뷰 작성 후
 목록 갱신.
