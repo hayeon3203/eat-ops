@@ -184,12 +184,17 @@ export function MapView({
       img.alt = "";
       img.className = "branch-office-logo";
 
+      // xAnchor/yAnchor는 쓰지 않는다. 카카오는 오버레이를 만들 때 콘텐츠 크기를 재서
+      // 앵커 오프셋을 잡는데, 우리는 그 뒤에 px 크기를 바꾼다 — 그러면 원본 141px 기준
+      // 오프셋이 남아 (141-현재px)/2 만큼 왼쪽·위로 밀리고, 줌인해서 현재px가 141에
+      // 가까워질수록 제자리로 수렴하는 것처럼 보인다. 앵커를 0,0으로 두고 CSS
+      // translate(-50%,-50%)로 자기 크기 기준 중앙을 잡으면 크기가 언제 바뀌든 안 밀린다.
       const logo = new window.kakao.maps.CustomOverlay({
         map,
         position: new window.kakao.maps.LatLng(office.lat, office.lng),
         content: img,
-        xAnchor: 0.5,
-        yAnchor: 0.5,
+        xAnchor: 0,
+        yAnchor: 0,
       });
       const label = new window.kakao.maps.CustomOverlay({
         map,
@@ -217,7 +222,8 @@ export function MapView({
         const sidePx = Math.abs(eastPx.x - centerPx.x);
         img.style.width = `${sidePx}px`;
         img.style.height = `${sidePx}px`;
-        img.style.transform = `rotate(${office.rotationDeg}deg)`;
+        // translate가 먼저 와야 자기 중심으로 옮긴 뒤 그 중심을 축으로 회전한다.
+        img.style.transform = `translate(-50%, -50%) rotate(${office.rotationDeg}deg)`;
       });
     }
 
