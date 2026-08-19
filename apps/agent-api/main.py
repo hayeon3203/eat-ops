@@ -14,24 +14,31 @@ import json
 import os
 import secrets
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from agent_framework import Agent
 from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
 from agent_framework.openai import OpenAIChatCompletionClient
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
-import approvals
-import audit_log
-import categories
-import db
-import kakao
-import router as model_router
-import sensitivity
-from tools import (
+# Must run before the local imports below: kakao/router/etc. read os.environ at
+# import time. Secrets used to live only in the launching shell's environment,
+# which meant a passcode/API key was lost for good the moment the process died.
+load_dotenv(Path(__file__).parent / ".env")
+
+import approvals  # noqa: E402
+import audit_log  # noqa: E402
+import categories  # noqa: E402
+import db  # noqa: E402
+import kakao  # noqa: E402
+import router as model_router  # noqa: E402
+import sensitivity  # noqa: E402
+from tools import (  # noqa: E402
     add_recommendation,
     build_metmuseum_mcp,
     mock_risky_action,
@@ -480,10 +487,20 @@ async def auto_endpoint(request: Request) -> StreamingResponse:
     target = "/foundry" if decision.provider == "foundry" else "/local"
     audit_log.route_reason_var.set(decision.reason)
 
+    # The forward below re-enters this same ASGI app, so it passes through
+    # _BasicAuthMiddleware a second time. Without replaying the caller's
+    # credential that inner request 401s and the client sees a 200 with an
+    # empty stream — the outer StreamingResponse has already committed its
+    # status by then, so the failure is completely silent.
+    forward_headers = {"content-type": "application/json"}
+    inbound_auth = request.headers.get("authorization")
+    if inbound_auth:
+        forward_headers["authorization"] = inbound_auth
+
     async def forward():
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://internal", timeout=None) as client:
-            async with client.stream("POST", target, content=body, headers={"content-type": "application/json"}) as upstream:
+            async with client.stream("POST", target, content=body, headers=forward_headers) as upstream:
                 async for chunk in upstream.aiter_raw():
                     yield chunk
 

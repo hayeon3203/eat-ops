@@ -6,7 +6,10 @@ import { RestaurantCard } from "./RestaurantCard";
 import { ReviewSection } from "./ReviewSection";
 import type { CategoryAxis, Cuisine, FoodType, Occasion, Recommendation } from "./types";
 
-const AGENT_API_BASE = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8787";
+// Same-origin: app/api/agent/[...path] proxies to agent-api and attaches the
+// passcode server-side. Never point this at agent-api's port directly —
+// a cross-origin fetch carries no credentials and silently renders empty.
+const AGENT_API_BASE = "/api/agent";
 
 const OCCASIONS: Occasion[] = ["점심장소", "회식장소", "수고한 나에게"];
 const FOOD_TYPES: FoodType[] = ["밥", "면", "빵"];

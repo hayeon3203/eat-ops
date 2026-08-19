@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { pickPaydayRecommendations, type PaydayPick } from "./paydayPick";
 import type { Recommendation } from "./types";
 
-const AGENT_API_BASE = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8787";
+// Same-origin: app/api/agent/[...path] proxies to agent-api and attaches the
+// passcode server-side. Never point this at agent-api's port directly —
+// a cross-origin fetch carries no credentials and silently renders empty.
+const AGENT_API_BASE = "/api/agent";
 
 function isPaydayToday(): boolean {
   if (new URLSearchParams(window.location.search).get("forcePayday") === "1") return true;
