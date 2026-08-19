@@ -41,6 +41,18 @@ function buildMarkerImage(color: string) {
   );
 }
 
+function toSelectedPlace(place: MapMarker): SelectedPlace {
+  return {
+    place_name: place.label,
+    address: place.address ?? "",
+    category: place.category,
+    phone: place.phone,
+    kakao_place_id: place.kakaoId,
+    lat: place.lat,
+    lng: place.lng,
+  };
+}
+
 export function MapView({
   activeTab,
   recordMarkers,
@@ -134,15 +146,7 @@ export function MapView({
         image,
       });
       window.kakao.maps.event.addListener(marker, "click", () =>
-        onMarkerSelect?.({
-          place_name: place.label,
-          address: place.address ?? "",
-          category: place.category,
-          phone: place.phone,
-          kakao_place_id: place.kakaoId,
-          lat: place.lat,
-          lng: place.lng,
-        })
+        onMarkerSelect?.(toSelectedPlace(place))
       );
       return marker;
     });
@@ -160,15 +164,7 @@ export function MapView({
         image,
       });
       window.kakao.maps.event.addListener(marker, "click", () =>
-        onMarkerSelect?.({
-          place_name: place.label,
-          address: place.address ?? "",
-          category: place.category,
-          phone: place.phone,
-          kakao_place_id: place.kakaoId,
-          lat: place.lat,
-          lng: place.lng,
-        })
+        onMarkerSelect?.(toSelectedPlace(place))
       );
       return marker;
     });
