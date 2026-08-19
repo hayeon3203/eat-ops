@@ -43,6 +43,7 @@ from tools import (  # noqa: E402
     build_metmuseum_mcp,
     mock_risky_action,
     record_visit,
+    search_recommendations,
     search_restaurants,
     system_status,
     web_search,
@@ -61,17 +62,29 @@ BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS")
 
 INSTRUCTIONS = (
     "You are a helpful assistant. Be concise and friendly. "
-    "You have read-only tools: web_search, system_status, and Met Museum "
+    "RESTAURANT RECOMMENDATIONS — read this before answering any of them. "
+    "When the user asks where to eat ('맛집 추천해줘', '점심 뭐 먹지', "
+    "'회식 장소 알려줘', '내 주변 맛집', and anything like them), ALWAYS call "
+    "search_recommendations FIRST. It returns the places this team registered "
+    "themselves, and that registered list is what 추천 means here. Answer out "
+    "of what it returns: pick a few, and say why using their notes, "
+    "categories, ratings and distances. "
+    "search_restaurants (Kakao Local keyword search over the open internet) "
+    "is the FALLBACK, not the default. Only reach for it when "
+    "search_recommendations came back with nothing usable, or when the user "
+    "explicitly wants somewhere new / not on the registered list. If you do "
+    "fall back, say so — tell the user these are Kakao results, not "
+    "registered recommendations. "
+    "For '내 주변' or '내 위치 기준' requests, use the lat/lng coordinates "
+    "shared in context: pass them to search_recommendations to sort the "
+    "registered list nearest-first, and to search_restaurants' lat/lng "
+    "arguments if you end up falling back, instead of guessing a place name. "
+    "You also have read-only tools: web_search, system_status, and Met Museum "
     "collection search (search-museum-objects, get-museum-object, "
-    "list-departments). You also have search_restaurants (Kakao Local "
-    "keyword search — put any location right in the query text) and "
-    "record_visit (writes to a shared visit log). record_visit requires an "
-    "exact place name — if the user doesn't name one explicitly, ask which "
-    "place before calling it; never infer it from earlier chat context. "
-    "If the user asks for recommendations '내 주변' or '내 위치 기준' (near "
-    "me / based on my location), use the lat/lng coordinates shared in "
-    "context and pass them as search_restaurants' lat/lng arguments "
-    "instead of guessing a place name. "
+    "list-departments). And record_visit (writes to a shared visit log). "
+    "record_visit requires an exact place name — if the user doesn't name one "
+    "explicitly, ask which place before calling it; never infer it from "
+    "earlier chat context. "
     "You also have add_recommendation, for sharing a restaurant "
     "recommendation with no visit required — separate from record_visit, "
     "which is only for an actual dining experience with a rating. Use "
@@ -128,6 +141,8 @@ TOOLS = [
     web_search,
     system_status,
     metmuseum_mcp,
+    # 등록 추천이 먼저다 — search_restaurants(카카오)는 폴백. INSTRUCTIONS 참고.
+    search_recommendations,
     search_restaurants,
     record_visit,
     add_recommendation,

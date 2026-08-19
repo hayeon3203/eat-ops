@@ -22,6 +22,7 @@ import approvals
 import categories
 import db
 import kakao
+import rec_search
 
 SEARXNG_BASE_URL = os.environ.get("SEARXNG_BASE_URL", "http://127.0.0.1:8081")
 SEARXNG_TIMEOUT_SECONDS = 5
@@ -161,6 +162,105 @@ async def search_restaurants(
     lines = [f"Found {len(places)} place(s) for '{query}':"]
     for p in places:
         lines.append(f"- {p['place_name']} ({p['address']}) — {p['category']}")
+    return state_update(text="\n".join(lines), state={"current_places": places})
+
+
+def _recommendation_line(row: dict[str, Any]) -> str:
+    """One compact line per recommendation, for the model to pick from."""
+    parts = [f"{row['place_name']} ({row.get('address') or '주소 미상'})"]
+    axes = [row.get(k) for k in ("occasion", "food_type", "cuisine")]
+    tags = "/".join(a for a in axes if a)
+    if tags:
+        parts.append(tags)
+    if row.get("price"):
+        parts.append(f"{row['price']:,}원")
+    if row.get("rating_avg") is not None and row.get("review_count"):
+        parts.append(f"★{row['rating_avg']} (리뷰 {row['review_count']})")
+    if row.get("distance_m") is not None:
+        parts.append(f"{row['distance_m']}m")
+    if row.get("note"):
+        parts.append(str(row["note"]))
+    return "- " + " — ".join(parts)
+
+
+@tool
+def search_recommendations(
+    occasion: str | None = None,
+    food_type: str | None = None,
+    cuisine: str | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+):
+    """Look up the restaurants this team has registered (등록된 추천 목록).
+
+    This is the source to use for "맛집 추천해줘" / "점심 뭐 먹지" / "회식 장소
+    알려줘" and every other recommendation request. These are places colleagues
+    registered themselves, which is what 추천 means here — search_restaurants
+    (Kakao, the open internet) is the fallback, not the default.
+
+    Takes no free-text query on purpose: it returns the whole shortlist (or an
+    axis-filtered slice of it) and you choose from what comes back. To narrow
+    by menu or mood, read the returned notes and categories rather than
+    guessing filter values.
+
+    Args:
+        occasion: One of "점심장소", "회식장소", "수고한 나에게", or omit for all.
+        food_type: One of "밥", "면", "빵", or omit for all.
+        cuisine: One of "한식", "양식", "일식", "중식", "베트남식", "기타", or omit for all.
+        lat: User's current latitude — pass for "내 주변" style requests to sort
+            the list nearest-first and get distances.
+        lng: User's current longitude — same.
+
+    Returns:
+        A state update: the matching recommendations as text (name, address,
+        categories, price, rating, note), with the same places pushed to
+        AG-UI shared state as `current_places` so the map marks them.
+    """
+    try:
+        categories.validate_category(occasion, categories.OCCASIONS, "occasion")
+        categories.validate_category(food_type, categories.FOOD_TYPES, "food_type")
+        categories.validate_category(cuisine, categories.CUISINES, "cuisine")
+    except ValueError as e:
+        return str(e)
+
+    rows = rec_search.search(
+        db.list_recommendations(),
+        occasion=occasion,
+        food_type=food_type,
+        cuisine=cuisine,
+        lat=lat,
+        lng=lng,
+    )
+    if not rows:
+        return state_update(
+            text=(
+                "등록된 추천 중 조건에 맞는 곳이 없습니다. 조건을 빼고 다시 찾아보거나, "
+                "사용자가 원하면 search_restaurants로 카카오에서 새로 찾아보세요."
+            ),
+            state={"current_places": []},
+        )
+
+    # 지도가 그리는 마커 모양(Place)에 맞춘다. 추천 행에는 place_url이 없어
+    # kakao_place_id로 만들어 넣는다 — 카카오 장소 URL은 id만 있으면 된다.
+    places = [
+        {
+            "kakao_place_id": row.get("kakao_place_id") or "",
+            "place_name": row["place_name"],
+            "address": row.get("address") or "",
+            "category": row.get("category") or "",
+            "phone": row.get("phone") or "",
+            "lat": row.get("lat"),
+            "lng": row.get("lng"),
+            "place_url": f"https://place.map.kakao.com/{row['kakao_place_id']}"
+            if row.get("kakao_place_id")
+            else "",
+        }
+        for row in rows
+        if row.get("lat") is not None and row.get("lng") is not None
+    ]
+
+    lines = [f"등록된 추천 {len(rows)}곳:"]
+    lines += [_recommendation_line(row) for row in rows]
     return state_update(text="\n".join(lines), state={"current_places": places})
 
 
