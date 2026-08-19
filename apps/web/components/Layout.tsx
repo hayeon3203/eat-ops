@@ -5,7 +5,7 @@ import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
 import { AskAvatar } from "./AskAvatar";
 import { PaydayPopup } from "./PaydayPopup";
-import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SidebarTab, Visit } from "./types";
+import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SelectedPlace, SidebarTab, Visit } from "./types";
 
 type MobileView = "map" | "list";
 
@@ -21,6 +21,7 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
   const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
   const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
   const [paydayFocus, setPaydayFocus] = useState<{ value: Occasion; token: number } | undefined>(undefined);
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
 
   function focusPaydayRecommendations() {
     setActiveTab("recommend");
@@ -49,6 +50,8 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
             setRecommendColorAxis(axis);
           }}
           forcedRecommendOccasion={paydayFocus}
+          selectedPlace={selectedPlace}
+          onClearSelectedPlace={() => setSelectedPlace(null)}
         />
       </div>
       <div className="layout-map">
@@ -57,6 +60,7 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
           recordMarkers={recordResults}
           recommendMarkers={recommendResults}
           recommendColorAxis={recommendColorAxis}
+          onMarkerSelect={setSelectedPlace}
         />
       </div>
       <AskAvatar />

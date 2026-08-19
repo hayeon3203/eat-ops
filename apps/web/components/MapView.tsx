@@ -4,19 +4,23 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoAgent } from "@copilotkit/react-core";
 import { useGeolocation } from "./useGeolocation";
-import type { AgentState, CategoryAxis, SidebarTab } from "./types";
+import type { AgentState, CategoryAxis, SelectedPlace, SidebarTab } from "./types";
 
 interface MapMarker {
   lat: number;
   lng: number;
   label: string;
+  address?: string;
+  category?: string;
+  kakaoId: string;
 }
 
 interface MapViewProps {
   activeTab: SidebarTab;
-  recordMarkers: { lat: number; lng: number; place_name: string }[];
-  recommendMarkers: { lat: number; lng: number; place_name: string }[];
+  recordMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string }[];
+  recommendMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string }[];
   recommendColorAxis: CategoryAxis | null;
+  onMarkerSelect?: (place: SelectedPlace) => void;
 }
 
 const AI_MARKER_COLOR = "#e0435c";
@@ -36,7 +40,13 @@ function buildMarkerImage(color: string) {
   );
 }
 
-export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendColorAxis }: MapViewProps) {
+export function MapView({
+  activeTab,
+  recordMarkers,
+  recommendMarkers,
+  recommendColorAxis,
+  onMarkerSelect,
+}: MapViewProps) {
   const center = useGeolocation();
   const { state } = useCoAgent<AgentState>({ name: "default", initialState: {} });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +57,15 @@ export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendC
 
   // AI 검색 레이어 — 탭과 무관하게 항상 표시.
   const aiMarkers: MapMarker[] = useMemo(
-    () => (state.current_places ?? []).map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name })),
+    () =>
+      (state.current_places ?? []).map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        label: p.place_name,
+        address: p.address,
+        category: p.category,
+        kakaoId: p.kakao_place_id,
+      })),
     [state.current_places]
   );
 
@@ -55,8 +73,20 @@ export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendC
   const tabMarkers: MapMarker[] = useMemo(
     () =>
       activeTab === "recommend"
-        ? recommendMarkers.map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name }))
-        : recordMarkers.map((p) => ({ lat: p.lat, lng: p.lng, label: p.place_name })),
+        ? recommendMarkers.map((p) => ({
+            lat: p.lat,
+            lng: p.lng,
+            label: p.place_name,
+            address: p.address,
+            kakaoId: p.kakao_place_id,
+          }))
+        : recordMarkers.map((p) => ({
+            lat: p.lat,
+            lng: p.lng,
+            label: p.place_name,
+            address: p.address,
+            kakaoId: p.kakao_place_id,
+          })),
     [activeTab, recommendMarkers, recordMarkers]
   );
 
@@ -90,31 +120,42 @@ export function MapView({ activeTab, recordMarkers, recommendMarkers, recommendC
     if (!map) return;
     aiMarkerObjsRef.current.forEach((m) => m.setMap(null));
     const image = buildMarkerImage(AI_MARKER_COLOR);
-    aiMarkerObjsRef.current = aiMarkers.map(
-      (place) =>
-        new window.kakao.maps.Marker({
-          position: new window.kakao.maps.LatLng(place.lat, place.lng),
-          map,
-          title: place.label,
-          image,
+    aiMarkerObjsRef.current = aiMarkers.map((place) => {
+      const marker = new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(place.lat, place.lng),
+        map,
+        title: place.label,
+        image,
+      });
+      window.kakao.maps.event.addListener(marker, "click", () =>
+        onMarkerSelect?.({
+          place_name: place.label,
+          address: place.address ?? "",
+          category: place.category,
+          kakao_place_id: place.kakaoId,
         })
-    );
-  }, [map, aiMarkers]);
+      );
+      return marker;
+    });
+  }, [map, aiMarkers, onMarkerSelect]);
 
   useEffect(() => {
     if (!map) return;
     tabMarkerObjsRef.current.forEach((m) => m.setMap(null));
     const image = buildMarkerImage(tabColor);
-    tabMarkerObjsRef.current = tabMarkers.map(
-      (place) =>
-        new window.kakao.maps.Marker({
-          position: new window.kakao.maps.LatLng(place.lat, place.lng),
-          map,
-          title: place.label,
-          image,
-        })
-    );
-  }, [map, tabMarkers, tabColor]);
+    tabMarkerObjsRef.current = tabMarkers.map((place) => {
+      const marker = new window.kakao.maps.Marker({
+        position: new window.kakao.maps.LatLng(place.lat, place.lng),
+        map,
+        title: place.label,
+        image,
+      });
+      window.kakao.maps.event.addListener(marker, "click", () =>
+        onMarkerSelect?.({ place_name: place.label, address: place.address ?? "", kakao_place_id: place.kakaoId })
+      );
+      return marker;
+    });
+  }, [map, tabMarkers, tabColor, onMarkerSelect]);
 
   // 탭 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
   // 다 보이게 지도를 재조정 — 위 effect와 별개로, geolocation 중심 이동과도 무관.

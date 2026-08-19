@@ -402,3 +402,46 @@ M0 골격
 7. 추가 MCP 아이템과 서버별 sandbox 강화
 
 이 후속 범위는 MVP의 provider/router/tool 계약을 변경하지 않고 교체하거나 확장할 수 있어야 한다.
+
+## 16. Milestone 6 — 사내망 배포 (소규모 다중 사용자)
+
+2026-08-11 추가. §15-3/4의 "Azure 배포/Managed Identity"와 "네트워크 분리된 GB10 접근"을 대체하는 게 아니라, 그 전 단계로 사내 LAN 안에서 동료 몇 명이 같은 GB10 인스턴스에 접속해 쓸 수 있게 하는 작업이다. §2의 비목표("GB10을 다중 사용자용 대규모 추론 클러스터로 사용하는 것")는 유지한다 — 여기서 말하는 다중 사용자는 동시 5명 이하의 캐주얼 사내 접근이지, 대규모 서빙이 아니다.
+
+오늘(2026-08-11) SSH+LAN(`172.16.4.228`)으로 접속했을 때 사이드바 리스트/마커가 전부 비어 보이는 문제를 겪었다 — `apps/web`의 `NEXT_PUBLIC_AGENT_API_URL` 기본값이 `127.0.0.1:8787`이라 원격 브라우저 기준으로는 자기 자신을 가리켰고, `apps/agent-api`도 `HOST=127.0.0.1`로만 떠 있어서 LAN에서 접근 자체가 불가능했다. 임시로 `HOST=0.0.0.0` 재시작 + `.env.local`에 LAN IP 하드코딩으로 고쳤지만, 이 상태는 인증 없이 LAN 전체에 채팅/도구 실행/삭제 엔드포인트를 열어둔 것이라 그대로 "배포"로 볼 수 없다.
+
+### 작업
+
+1. [lane:gate] (완료, 2026-08-11) 접근 보호: 로그인 없이 LAN 전체에 열어두는 대신 최소한의 gate를 둔다 — 공유 passcode/토큰 기반 미들웨어(FastAPI) 또는 reverse proxy basic auth 중 더 단순한 쪽을 선택한다. → 네이티브 HTTP Basic Auth로 구현: `apps/agent-api/main.py`의 `_BasicAuthMiddleware`(8787), `apps/web/proxy.ts`(3000). 브라우저가 origin당 한 번 물어보고 캐싱하므로 프런트 fetch 코드 변경 없음(server-to-server 프록시인 `apps/web/app/api/copilotkit/[provider]/route.ts`만 `Authorization` 헤더 직접 첨부). `BASIC_AUTH_PASS` 미설정 시 게이트 꺼짐(로컬 개발 무영향). curl로 401/200 검증 완료.
+2. [lane:gate] (조사 완료, 2026-08-11) `cost_guard.py`의 일일 비용 하드캡이 서버 전체 공용인지 확인 → **확인: 프로세스 전역(`_state` 모듈 변수), 사용자/세션 구분 없음.** 로컬 vLLM은 무료라 캡 대상이 아니고(현재 Foundry 미설정이라 지금 당장은 영향 없음), Foundry가 설정되면 동료 한 명이 하루치 $50을 다 쓰면 나머지 전원이 그날 Foundry 사용 불가. IP/세션별 쿼터로 확장할지, 이대로 문서화만 하고 넘어갈지 결정 필요(구현은 아직 안 함).
+3. [lane:fast] (조사 완료, 2026-08-11) CopilotKit thread/agent state 격리 확인 → **확인: `AgentState`(`current_places` 등)는 Python 쪽에 전역 변수가 없고 AG-UI 프로토콜의 STATE_SNAPSHOT/DELTA로 SSE 연결(스레드)별로 흐른다 — 세션 간 안 섞임.** 단, `approvals.py`의 `_pending` dict는 `cost_guard`와 같은 패턴의 프로세스 전역 — approval_id를 아는(추측 가능한) 사람이면 누구 approval이든 승인/거절 가능. `mock_risky_action`은 데모 전용이라 지금은 낮은 리스크로 판단, 실제 위험 도구 붙일 때(§15-5) 재검토 필요.
+4. [lane:gate] 오늘 겪은 `127.0.0.1` 하드코딩 문제를 재발 방지하도록 `.env.example`과 README에 "사내망 배포 시 설정값"(`HOST=0.0.0.0`, `NEXT_PUBLIC_AGENT_API_URL=http://<LAN-IP>:8787`) 섹션을 추가한다.
+5. [lane:gate] [tdd:skip:manual-infra-verification] 동료 1~2명과 동시 접속 smoke test를 실행하고 지연/에러를 기록한다.
+
+### 완료 조건
+
+- 사내 LAN의 다른 기기에서 passcode/토큰 없이는 채팅·기록 삭제 등 어떤 엔드포인트도 실행할 수 없다.
+- 동시 사용자 2명 이상이 서로의 대화나 기록이 섞이지 않고 사용할 수 있다.
+- README에 사내망 배포 절차(바인딩, 환경변수, 접근 제한)가 문서화된다.
+- 일일 비용 캡이 전체 서비스를 막는지, 사용자 단위인지가 명확히 문서화된다(고치지 않더라도 한계로 명시).
+
+## 17. Milestone 7 — 방문 기록 사진 첨부
+
+2026-08-11 추가. [기록] 탭(Visit)에 사진을 올려 팀원들이 방문한 곳을 사진과 함께 남기고 볼 수 있게 한다. Milestone 6(사내망 배포)와 별개로 구현 가능하지만, "여러 사람이 같이 쓴다"는 실사용 가치는 M6 완료 후에 실현된다.
+
+현재 `visits` 테이블(`apps/agent-api/db.py`)에는 사진 컬럼이 없고, visit 생성은 채팅 tool(`tools.py`의 `record_visit`)로만 가능하다 — 파일 업로드는 채팅 tool-call로 못 하므로, 추천(Recommendation) 쪽처럼 REST 폼을 새로 만들어야 한다.
+
+### 작업
+
+1. [lane:gate] [tdd:required] DB: `visits` 테이블에 `photo_path`(nullable TEXT) 컬럼 추가 — `recommendations` 확장 때 쓴 `ALTER TABLE ... ADD COLUMN` 무중단 마이그레이션 패턴(`db.py` 기존 주석 "Added after the table already shipped" 참고)을 그대로 재사용한다.
+2. [lane:gate] [tdd:required] `POST /api/visits`(신규, multipart/form-data) 엔드포인트 구현 — 장소 정보 + 사진 파일을 받아 로컬 디스크(`apps/agent-api/data/photos/{visit_id}.jpg`)에 저장하고 `photo_path`를 기록한다.
+3. [lane:gate] 업로드 검증: 파일 타입(jpg/png만 허용), 크기 제한(예: 5MB), 파일명 sanitize — 경로 조작이나 임의 파일 저장을 막는다.
+4. [lane:gate] 사진 서빙: `GET /api/visits/{id}/photo` 또는 static mount로 노출한다.
+5. [lane:gate] 프런트: `RecommendationForm.tsx` 패턴을 재사용한 `VisitForm.tsx` 신규 — 장소명/별점/노트 + 사진 첨부 input. `VisitList.tsx`/`RestaurantCard.tsx`에 썸네일을 표시한다.
+6. [lane:fast] 사이드바 [기록] 카드와 지도 마커 클릭 카드(`Sidebar.tsx`의 선택 장소 패널)에 썸네일을 표시하고, 클릭 시 원본을 새 탭으로 연다.
+
+### 완료 조건
+
+- REST 폼으로 사진과 함께 방문 기록을 등록할 수 있다(채팅 경유 없이).
+- [기록] 리스트와 지도 마커 클릭 카드에 썸네일이 보인다.
+- 5MB 초과 또는 이미지가 아닌 파일 업로드 시 서버가 400으로 거부한다.
+- M6 완료 후 여러 명이 동시에 사진을 올려도 파일명 충돌이 없다.
