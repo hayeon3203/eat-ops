@@ -15,9 +15,13 @@ type MobileView = "map" | "list";
 interface LayoutProps {
   provider: Provider;
   onProviderChange: (provider: Provider) => void;
+  // 챗 열림 상태는 page.tsx가 <CopilotKit> 바깥에서 들고 있다 — 모델을 바꾸면
+  // key={provider}가 이 서브트리를 통째로 remount시켜 팝업이 닫혀버리기 때문.
+  chatOpen: boolean;
+  onChatOpenChange: (open: boolean) => void;
 }
 
-export function Layout({ provider, onProviderChange }: LayoutProps) {
+export function Layout({ provider, onProviderChange, chatOpen, onChatOpenChange }: LayoutProps) {
   // 모바일 첫 화면은 리스트. 지도는 SSR에 빈 div로만 나가고(카카오 SDK가 클라이언트에서
   // 그린다) 좁은 화면에서는 사이드바가 display:none이라, 첫 화면을 지도로 두면 JS가
   // 다 뜰 때까지 탭 바만 있는 빈 화면이 보인다. 리스트는 SSR로 이미 그려져 있다.
@@ -63,14 +67,14 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
         />
       </div>
       {selectedPlace && (
-        <div className="layout-place-panel">
-          <PlacePanel
-            place={selectedPlace}
-            onClose={() => setSelectedPlace(null)}
-            myLocation={myLocation}
-            locationResolved={locationResolved}
-          />
-        </div>
+        // key: 다른 마커로 갈아타면 시트를 다시 엿보기 높이로 되돌린다.
+        <PlacePanel
+          key={selectedPlace.kakao_place_id}
+          place={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
+          myLocation={myLocation}
+          locationResolved={locationResolved}
+        />
       )}
       <div className="layout-map">
         <MapView
@@ -78,9 +82,15 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
           recommendColorAxis={recommendColorAxis}
           paydayMode={paydayPickIds !== null}
           onMarkerSelect={setSelectedPlace}
+          focusPlace={selectedPlace}
         />
       </div>
-      <AskAvatar />
+      <AskAvatar
+        provider={provider}
+        onProviderChange={onProviderChange}
+        open={chatOpen}
+        onOpenChange={onChatOpenChange}
+      />
       <PaydayPopup onShowOnMap={focusPaydayRecommendations} />
     </div>
   );
