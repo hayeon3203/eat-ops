@@ -168,8 +168,8 @@ export function MapView({
 
   // 지사 5곳 — 검색 결과도 추천도 아닌 고정 배경 정보라 상수 데이터([map] 하나에만) 의존.
   // 카카오에는 이미지 지상 오버레이 API가 없어 CustomOverlay에 <img>를 담고 px 크기를
-  // 직접 계산한다: 중심과 그 동쪽/북쪽으로 widthM/heightM 떨어진 지점을 projection으로
-  // 컨테이너 좌표로 변환하면 그 차이가 곧 폭/높이의 픽셀 값이다. 줌이 바뀌면 미터당
+  // 직접 계산한다: 중심과 그 동쪽으로 sizeM 떨어진 지점을 projection으로 컨테이너
+  // 좌표로 변환하면 그 차이가 곧 한 변의 픽셀 값이다. 줌이 바뀌면 미터당
   // 픽셀 비율도 바뀌므로 zoom_changed 때마다 다시 계산 — 리스너는 지도 레벨이라
   // 이 effect가 직접 붙였고, 사이블링 마커 effect들과 달리 setMap(null)만으로는
   // 안 지워지므로 cleanup에서 removeListener로 반드시 뗀다.
@@ -206,17 +206,17 @@ export function MapView({
       const projection = map.getProjection();
       entries.forEach(({ office, img }) => {
         const center = new window.kakao.maps.LatLng(office.lat, office.lng);
-        const eastDelta = metersToLatLngDelta(office.lat, office.widthM, 0);
-        const northDelta = metersToLatLngDelta(office.lat, 0, office.heightM);
+        const eastDelta = metersToLatLngDelta(office.lat, office.sizeM, 0);
         const eastPoint = new window.kakao.maps.LatLng(office.lat + eastDelta.dLat, office.lng + eastDelta.dLng);
-        const northPoint = new window.kakao.maps.LatLng(office.lat + northDelta.dLat, office.lng + northDelta.dLng);
 
         const centerPx = projection.pointFromCoords(center);
         const eastPx = projection.pointFromCoords(eastPoint);
-        const northPx = projection.pointFromCoords(northPoint);
 
-        img.style.width = `${Math.abs(eastPx.x - centerPx.x)}px`;
-        img.style.height = `${Math.abs(centerPx.y - northPx.y)}px`;
+        // 한 변만 재고 가로·세로에 같이 넣는다 — 원본이 141×141 정사각이라 두 축을
+        // 따로 재면 투영 오차만큼 미세하게 찌그러진다.
+        const sidePx = Math.abs(eastPx.x - centerPx.x);
+        img.style.width = `${sidePx}px`;
+        img.style.height = `${sidePx}px`;
         img.style.transform = `rotate(${office.rotationDeg}deg)`;
       });
     }
