@@ -20,7 +20,7 @@ function dismissedKey(): string {
 }
 
 interface PaydayPopupProps {
-  onShowOnMap: () => void;
+  onShowOnMap: (picks: PaydayPick[]) => void;
 }
 
 export function PaydayPopup({ onShowOnMap }: PaydayPopupProps) {
@@ -47,8 +47,11 @@ export function PaydayPopup({ onShowOnMap }: PaydayPopupProps) {
   }
 
   function handleShowOnMap() {
+    // 함수 선언은 위의 `if (!picks || closed) return null` 위로 호이스팅돼서
+    // 그 가드의 좁히기가 여기까지 오지 않는다 — 다시 확인한다.
+    if (!picks) return;
     setClosed(true);
-    onShowOnMap();
+    onShowOnMap(picks);
   }
 
   return (

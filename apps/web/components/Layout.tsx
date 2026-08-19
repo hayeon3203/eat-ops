@@ -5,7 +5,8 @@ import { MapView } from "./MapView";
 import { Sidebar } from "./Sidebar";
 import { AskAvatar } from "./AskAvatar";
 import { PaydayPopup } from "./PaydayPopup";
-import type { CategoryAxis, Occasion, Place, Provider, Recommendation, SelectedPlace, SidebarTab, Visit } from "./types";
+import type { PaydayPick } from "./paydayPick";
+import type { CategoryAxis, Place, Provider, Recommendation, SelectedPlace, SidebarTab, Visit } from "./types";
 
 type MobileView = "map" | "list";
 
@@ -20,12 +21,14 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
   const [recordResults, setRecordResults] = useState<(Visit | Place)[]>([]);
   const [recommendResults, setRecommendResults] = useState<Recommendation[]>([]);
   const [recommendColorAxis, setRecommendColorAxis] = useState<CategoryAxis | null>(null);
-  const [paydayFocus, setPaydayFocus] = useState<{ value: Occasion; token: number } | undefined>(undefined);
+  const [paydayPickIds, setPaydayPickIds] = useState<number[] | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
 
-  function focusPaydayRecommendations() {
+  // 팝업이 고른 3곳만 지도에 남긴다. 상황 필터(7곳)로 넓히면 팝업이 뽑아준 의미가
+  // 사라져서, 리스트도 지도도 그 3곳으로 좁힌다.
+  function focusPaydayRecommendations(picks: PaydayPick[]) {
     setActiveTab("recommend");
-    setPaydayFocus((prev) => ({ value: "수고한 나에게", token: (prev?.token ?? 0) + 1 }));
+    setPaydayPickIds(picks.map((p) => p.place.id));
   }
 
   return (
@@ -49,7 +52,8 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
             setRecommendResults(items);
             setRecommendColorAxis(axis);
           }}
-          forcedRecommendOccasion={paydayFocus}
+          paydayPickIds={paydayPickIds}
+          onClearPaydayPicks={() => setPaydayPickIds(null)}
           selectedPlace={selectedPlace}
           onClearSelectedPlace={() => setSelectedPlace(null)}
         />
@@ -60,6 +64,7 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
           recordMarkers={recordResults}
           recommendMarkers={recommendResults}
           recommendColorAxis={recommendColorAxis}
+          paydayMode={paydayPickIds !== null}
           onMarkerSelect={setSelectedPlace}
         />
       </div>

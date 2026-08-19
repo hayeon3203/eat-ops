@@ -21,6 +21,8 @@ interface MapViewProps {
   recordMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
   recommendMarkers: { lat: number; lng: number; place_name: string; address?: string; kakao_place_id: string; phone?: string | null; category?: string | null }[];
   recommendColorAxis: CategoryAxis | null;
+  /** 월급날 팝업이 고른 3곳을 보고 있는 동안은 핀 대신 아바타로 표시한다. */
+  paydayMode?: boolean;
   onMarkerSelect?: (place: SelectedPlace) => void;
 }
 
@@ -41,6 +43,15 @@ function buildMarkerImage(color: string) {
   );
 }
 
+function buildAvatarMarkerImage() {
+  // 원본 GIF는 256x256. offset을 명시해 사각 이미지의 아래 중앙이 좌표에 닿게 한다.
+  return new window.kakao.maps.MarkerImage(
+    "/food-picker-avatar-rice-pin-floating.gif",
+    new window.kakao.maps.Size(48, 48),
+    { offset: new window.kakao.maps.Point(24, 48) }
+  );
+}
+
 function toSelectedPlace(place: MapMarker): SelectedPlace {
   return {
     place_name: place.label,
@@ -58,6 +69,7 @@ export function MapView({
   recordMarkers,
   recommendMarkers,
   recommendColorAxis,
+  paydayMode,
   onMarkerSelect,
 }: MapViewProps) {
   const center = useGeolocation();
@@ -155,7 +167,7 @@ export function MapView({
   useEffect(() => {
     if (!map) return;
     tabMarkerObjsRef.current.forEach((m) => m.setMap(null));
-    const image = buildMarkerImage(tabColor);
+    const image = paydayMode ? buildAvatarMarkerImage() : buildMarkerImage(tabColor);
     tabMarkerObjsRef.current = tabMarkers.map((place) => {
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(place.lat, place.lng),
@@ -168,7 +180,7 @@ export function MapView({
       );
       return marker;
     });
-  }, [map, tabMarkers, tabColor, onMarkerSelect]);
+  }, [map, tabMarkers, tabColor, paydayMode, onMarkerSelect]);
 
   // 탭 마커셋이 바뀌면(필터 적용, 월급날 팝업의 "지도에서 보기" 등) 그 마커들이
   // 다 보이게 지도를 재조정 — 위 effect와 별개로, geolocation 중심 이동과도 무관.
