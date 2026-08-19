@@ -31,6 +31,8 @@ export interface ReviewablePlace {
   lng: number;
   rating_avg: number | null;
   review_count: number;
+  phone?: string | null;
+  category?: string | null;
 }
 
 interface ReviewSectionProps {
@@ -110,6 +112,8 @@ export function ReviewSection({ place, defaultOpen = false }: ReviewSectionProps
           note: comment,
           author: identity.nickname,
           author_id: identity.id,
+          phone: place.phone,
+          category: place.category,
         }),
       });
       if (!res.ok) throw new Error(`failed: ${res.status}`);

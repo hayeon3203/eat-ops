@@ -25,6 +25,7 @@ export function haversineMeters(a: Coords, b: Coords): number {
 }
 
 export function formatDistance(meters: number): string {
+  if (!Number.isFinite(meters)) return "";
   if (meters < 1000) return `${Math.round(meters)}m`;
   return `${(meters / 1000).toFixed(1)}km`;
 }

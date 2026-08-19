@@ -32,6 +32,11 @@ describe("formatDistance", () => {
   it("1km 이상은 소수 한 자리 km", () => {
     expect(formatDistance(8793)).toBe("8.8km");
   });
+
+  it("NaN 등 유한하지 않은 값은 빈 문자열 (위치 미해결 시 'NaNkm' 방지)", () => {
+    expect(formatDistance(NaN)).toBe("");
+    expect(formatDistance(Infinity)).toBe("");
+  });
 });
 
 describe("categoryBadge", () => {

@@ -43,7 +43,7 @@ export function Sidebar({
   selectedPlace,
   onClearSelectedPlace,
 }: SidebarProps) {
-  const myLocation = useGeolocation();
+  const { resolved: locationResolved, ...myLocation } = useGeolocation();
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
 
@@ -58,9 +58,10 @@ export function Sidebar({
 
   const selectedModel = provider === "local" ? "로컬 / EXAONE" : "Foundry / GPT-5 mini";
   const badge = categoryBadge(selectedPlace?.category);
-  const distance = selectedPlace
-    ? formatDistance(haversineMeters(myLocation, { lat: selectedPlace.lat, lng: selectedPlace.lng }))
-    : "";
+  const distance =
+    selectedPlace && locationResolved
+      ? formatDistance(haversineMeters(myLocation, { lat: selectedPlace.lat, lng: selectedPlace.lng }))
+      : "";
 
   function selectModel(nextProvider: Provider) {
     setIsModelMenuOpen(false);
@@ -138,15 +139,19 @@ export function Sidebar({
             </button>
           </div>
           <RestaurantCard name={selectedPlace.place_name} address={selectedPlace.address} />
-          <div className="sidebar-selected-place-meta">
-            {badge && <span className="sidebar-selected-place-badge">{badge}</span>}
-            {selectedPlace.phone && (
-              <a className="sidebar-selected-place-phone" href={`tel:${selectedPlace.phone}`}>
-                📞 {selectedPlace.phone}
-              </a>
-            )}
-            <span className="sidebar-selected-place-distance">{distance}</span>
-          </div>
+          {(badge || selectedPlace.phone || distance) && (
+            <div className="sidebar-selected-place-meta">
+              {badge && <span className="sidebar-selected-place-badge">{badge}</span>}
+              {selectedPlace.phone && (
+                <a className="sidebar-selected-place-phone" href={`tel:${selectedPlace.phone}`}>
+                  <span aria-hidden="true">📞</span> {selectedPlace.phone}
+                </a>
+              )}
+              {/* 배지·전화처럼 별도 색/배경이 없어 부모 .sidebar-selected-place-meta의
+                  기본 텍스트 스타일을 그대로 쓴다 — 전용 클래스를 붙일 이유가 없다. */}
+              {distance && <span>{distance}</span>}
+            </div>
+          )}
           <a
             className="sidebar-selected-place-link"
             href={`https://place.map.kakao.com/${selectedPlace.kakao_place_id}`}
@@ -168,6 +173,8 @@ export function Sidebar({
               // fetch한 값이 이 자리를 덮어쓴다 (ReviewSection.tsx의 count/avg).
               rating_avg: null,
               review_count: 0,
+              phone: selectedPlace.phone,
+              category: selectedPlace.category,
             }}
           />
         </div>
