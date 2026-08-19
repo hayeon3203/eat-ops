@@ -31,9 +31,12 @@ export function Layout({ provider, onProviderChange }: LayoutProps) {
   const { resolved: locationResolved, ...myLocation } = useGeolocation();
 
   // 팝업이 고른 3곳만 지도에 남긴다. 상황 필터(7곳)로 넓히면 팝업이 뽑아준 의미가
-  // 사라져서, 리스트도 지도도 그 3곳으로 좁힌다.
+  // 사라져서, 리스트도 지도도 그 3곳으로 좁힌다. 좁은 화면은 지도와 리스트 중
+  // 하나만 보이므로 "지도에서 보기"가 지도로 전환까지 해야 한다 — 안 그러면
+  // 리스트에 남은 채로 버튼만 먹는다.
   function focusPaydayRecommendations(picks: PaydayPick[]) {
     setPaydayPickIds(picks.map((p) => p.place.id));
+    setMobileView("map");
   }
 
   return (
