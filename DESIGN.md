@@ -237,13 +237,15 @@ GB10 로컬 모델을 사용하며 초기에는 다음과 같이 범위가 좁�
 
 ## 10. 저장소 구조
 
+> 아래는 설계 시점의 목표 구조다. 실제로는 `packages/`와 `services/model-gateway`를 만들지
+> 않았다 — provider 전환은 `apps/agent-api/main.py`가 Agent Framework로 직접 하고,
+> 공유 타입은 `apps/web/components/types.ts`에 둔다.
+
 ```text
 eat-ops/
 ├── apps/
 │   ├── web/                 # Next.js + CopilotKit
 │   └── agent-api/           # Python + Agent Framework + AG-UI
-├── services/
-│   └── model-gateway/       # ModelRouter와 provider adapters
 ├── packages/
 │   ├── contracts/           # AG-UI 상태 및 공통 스키마
 │   └── ui/                  # 공유 React 컴포넌트

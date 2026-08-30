@@ -89,6 +89,8 @@ npm run dev   # 기본 127.0.0.1:3000
 **`web_search` 호출이 실패/타임아웃한다**
 SearXNG(`8081`)가 안 떠 있거나 `SEARXNG_BASE_URL`이 잘못됐을 가능성이 높다. `curl http://127.0.0.1:8081/search?q=test&format=json`으로 직접 확인.
 
+떠 있는데도 결과가 0건이면 SearXNG 자체가 아니라 그 뒤의 검색 엔진이 막힌 것이다. 위 curl 응답의 `unresponsive_engines`를 보면 원인이 나온다(brave 429, duckduckgo/startpage CAPTCHA 등). SearXNG 설정에서 살아있는 엔진으로 바꾸거나 시간을 두고 재시도한다 — 이 레포에서 고칠 수 있는 부분이 아니다.
+
 **장소 검색/등록/기록이 전부 실패한다**
 `KAKAO_REST_API_KEY` 미설정이거나 카카오 로컬 API 일일 쿼터 초과(응답 429, 프런트에 "카카오맵 일일 검색 한도를 초과했습니다" 메시지로 노출됨). 다음날 재시도하거나 키 확인.
 

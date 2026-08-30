@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts the GB10 local model server for Track A (services/model-gateway/providers/local_gb10.py).
+# Starts the GB10 local model server. apps/agent-api가 LOCAL_VLLM_BASE_URL로 붙는다.
 # Port 8000: avoids ollama (11434) and open-webui (8080).
 set -euo pipefail
 
