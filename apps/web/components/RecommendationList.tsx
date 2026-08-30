@@ -30,6 +30,9 @@ interface RecommendationListProps {
   /** 카드 클릭 시 상세 컬럼을 연다. Recommendation은 SelectedPlace가 필요로 하는
    *  필드를 전부 갖고 있다. */
   onSelect?: (place: SelectedPlace) => void;
+  /** 값이 바뀌면 목록을 다시 불러온다 — 상세 패널이 장소를 추가하는 경로는
+   *  이 컴포넌트를 거치지 않아 폼의 onAdded로는 못 잡는다. */
+  refreshKey?: number;
 }
 
 function toSelectedPlace(rec: Recommendation): SelectedPlace {
@@ -49,6 +52,7 @@ export function RecommendationList({
   forcedPickIds,
   onClearForcedPicks,
   onSelect,
+  refreshKey,
 }: RecommendationListProps) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [occasionFilter, setOccasionFilter] = useState<Occasion | null>(null);
@@ -61,7 +65,7 @@ export function RecommendationList({
       .then((res) => res.json())
       .then((data: Recommendation[]) => setRecommendations(data))
       .catch(() => setRecommendations([]));
-  }, []);
+  }, [refreshKey]);
 
   const filtered = useMemo(
     () =>

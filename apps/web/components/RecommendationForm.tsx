@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { Cuisine, FoodType, Occasion, Recommendation } from "./types";
+import { useEffect, useState } from "react";
+import type { Cuisine, FoodType, Occasion, Place, Recommendation } from "./types";
 
 // Same-origin: app/api/agent/[...path] proxies to agent-api and attaches the
 // passcode server-side. Never point this at agent-api's port directly —
@@ -18,6 +18,10 @@ interface RecommendationFormProps {
 
 export function RecommendationForm({ onAdded }: RecommendationFormProps) {
   const [placeName, setPlaceName] = useState("");
+  const [suggestions, setSuggestions] = useState<Place[]>([]);
+  // 목록에서 하나 고른 직후에는 그 이름으로 다시 검색하지 않는다 —
+  // setPlaceName이 다시 이 effect를 돌려 방금 닫은 목록이 그대로 다시 열린다.
+  const [picked, setPicked] = useState(false);
   const [occasion, setOccasion] = useState<Occasion | "">("");
   const [foodType, setFoodType] = useState<FoodType | "">("");
   const [cuisine, setCuisine] = useState<Cuisine | "">("");
@@ -27,6 +31,40 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const selectedCategoryCount = [occasion, foodType, cuisine].filter(Boolean).length;
+
+  // 입력 중 카카오 키워드 검색을 미리 돌려 후보를 보여준다. 목록에서 고르면
+  // 이름이 카카오 정식 명칭이 되므로 등록 시 재검색이 반드시 그 장소를 집는다 —
+  // "검색되지 않는 장소" 에러가 나던 자리가 이 목록이다.
+  useEffect(() => {
+    const q = placeName.trim();
+    if (picked || q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let stale = false;
+    const timer = setTimeout(() => {
+      fetch(`${AGENT_API_BASE}/api/search?q=${encodeURIComponent(q)}`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((places: Place[]) => {
+          // 디바운스가 타이머는 지워도 이미 떠난 요청은 못 지운다. 늦게 도착한
+          // 옛 질의가 새 목록을 덮지 않게 이 회차가 낡았는지 본다.
+          if (!stale) setSuggestions(places);
+        })
+        .catch(() => {
+          if (!stale) setSuggestions([]);
+        });
+    }, 250);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [placeName, picked]);
+
+  function pickSuggestion(place: Place) {
+    setPlaceName(place.place_name);
+    setPicked(true);
+    setSuggestions([]);
+  }
 
   async function submit() {
     if (!placeName.trim()) return;
@@ -64,7 +102,32 @@ export function RecommendationForm({ onAdded }: RecommendationFormProps) {
 
   return (
     <div className="recommendation-form">
-      <input type="text" value={placeName} onChange={(e) => setPlaceName(e.target.value)} placeholder="장소명" />
+      <div className="place-autocomplete">
+        <input
+          type="text"
+          value={placeName}
+          onChange={(e) => {
+            setPlaceName(e.target.value);
+            setPicked(false);
+          }}
+          // 목록 밖을 눌러도 닫히게 한다. 항목 클릭보다 blur가 먼저 오므로
+          // 바로 지우면 클릭이 사라진 요소 위에서 죽는다 — 한 틱 늦춘다.
+          onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+          placeholder="장소명"
+        />
+        {suggestions.length > 0 && (
+          <ul className="place-suggestions">
+            {suggestions.map((place) => (
+              <li key={place.kakao_place_id}>
+                <button type="button" onClick={() => pickSuggestion(place)}>
+                  <strong>{place.place_name}</strong>
+                  <small>{place.address}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <button
         type="button"
         className="category-disclosure"

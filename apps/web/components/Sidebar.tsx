@@ -11,6 +11,8 @@ interface SidebarProps {
   paydayPickIds?: number[] | null;
   onClearPaydayPicks?: () => void;
   onSelectPlace?: (place: SelectedPlace) => void;
+  /** 값이 바뀌면 추천 목록을 다시 불러온다 (상세 패널에서 장소를 추가했을 때). */
+  refreshKey?: number;
 }
 
 export function Sidebar({
@@ -20,6 +22,7 @@ export function Sidebar({
   paydayPickIds,
   onClearPaydayPicks,
   onSelectPlace,
+  refreshKey,
 }: SidebarProps) {
   return (
     <div className="sidebar">
@@ -33,6 +36,7 @@ export function Sidebar({
           forcedPickIds={paydayPickIds}
           onClearForcedPicks={onClearPaydayPicks}
           onSelect={onSelectPlace}
+          refreshKey={refreshKey}
         />
       </div>
     </div>

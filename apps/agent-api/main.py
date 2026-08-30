@@ -302,7 +302,7 @@ class _BasicAuthMiddleware:
         await response(scope, receive, send)
 
 
-app = FastAPI(title="Foundry Hybrid Agent API", lifespan=lifespan)
+app = FastAPI(title="eat-ops API", lifespan=lifespan)
 app.add_middleware(_FixToolCallOrderMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -369,6 +369,17 @@ async def search_places_endpoint(q: str):
     persisted; only `record_visit` (via chat) writes to the visit log."""
     try:
         return await kakao.search_places(q)
+    except kakao.KakaoQuotaExceededError:
+        raise HTTPException(status_code=429, detail="Kakao Local daily quota exceeded.")
+
+
+@app.get("/api/search/nearby")
+async def search_nearby_endpoint(lat: float, lng: float, radius_m: int = 100):
+    """지도에서 누른 좌표 주변 음식점 — 지도 클릭을 "그 식당 선택"으로 바꾸는 용도.
+    ponytail: 반경 기본 100m. 손가락 오차 + 라벨 위치 오차를 덮는 값이고,
+    좁혀야 하면 호출부에서 radius_m으로 준다."""
+    try:
+        return await kakao.search_nearby_restaurants(lat, lng, radius_m=radius_m)
     except kakao.KakaoQuotaExceededError:
         raise HTTPException(status_code=429, detail="Kakao Local daily quota exceeded.")
 

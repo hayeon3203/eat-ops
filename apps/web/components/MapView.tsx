@@ -26,6 +26,10 @@ interface MapViewProps {
   focusPlace?: SelectedPlace | null;
   /** 좁은 화면에서 지금 보이는 탭. 지도 탭으로 돌아올 때마다 기준 화면을 다시 잡는다. */
   mobileView?: "map" | "list";
+  /** 마커가 아닌 지도 위를 눌렀을 때의 좌표. 카카오 SDK는 기본 지도에 그려진
+   *  상점 라벨의 클릭 이벤트를 주지 않아서, 그 좌표 주변을 검색해 "누른 식당"을
+   *  대신 찾는다 (Layout.handleMapClick). */
+  onMapClick?: (lat: number, lng: number) => void;
 }
 
 // 지도 첫 화면은 항상 서울지사. 예전에는 useGeolocation 값을 중심으로 썼는데,
@@ -85,6 +89,7 @@ export function MapView({
   onMarkerSelect,
   focusPlace,
   mobileView,
+  onMapClick,
 }: MapViewProps) {
   const { state } = useCoAgent<AgentState>({ name: "default", initialState: {} });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,6 +180,16 @@ export function MapView({
       return marker;
     });
   }, [map, tabMarkers, recommendColor, paydayMode, onMarkerSelect]);
+
+  // 지도 클릭. 마커 클릭은 마커가 먹고 이 이벤트로 내려오지 않는다 — 즉 여기 오는 건
+  // 우리 핀이 아닌 자리(카카오 기본 지도의 상점 라벨 포함)를 누른 경우뿐이다.
+  // 지사 로고 오버레이는 pointer-events: none이라 그 위를 눌러도 여기로 온다.
+  useEffect(() => {
+    if (!map || !onMapClick) return;
+    const handler = (e: any) => onMapClick(e.latLng.getLat(), e.latLng.getLng());
+    window.kakao.maps.event.addListener(map, "click", handler);
+    return () => window.kakao.maps.event.removeListener(map, "click", handler);
+  }, [map, onMapClick]);
 
   // 지사 5곳 — 검색 결과도 추천도 아닌 고정 배경 정보라 상수 데이터([map] 하나에만) 의존.
   // 카카오에는 이미지 지상 오버레이 API가 없어 CustomOverlay에 <img>를 담고 px 크기를

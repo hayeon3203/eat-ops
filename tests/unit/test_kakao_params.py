@@ -44,12 +44,35 @@ def check_radius_clamped() -> bool:
     return ok
 
 
+def check_nearby_restaurants_only() -> bool:
+    params = kakao._build_nearby_params(37.5, 127.0, 100, 5)
+    ok = params == {
+        "category_group_code": "FD6",
+        "y": "37.5",
+        "x": "127.0",
+        "radius": "100",
+        "sort": "distance",
+        "size": "5",
+    }
+    print(f"[nearby_restaurants_only] {'ok' if ok else 'FAILED'} params={params!r}")
+    return ok
+
+
+def check_nearby_radius_clamped() -> bool:
+    params = kakao._build_nearby_params(37.5, 127.0, 999999, 99)
+    ok = params["radius"] == "20000" and params["size"] == "15"
+    print(f"[nearby_radius_clamped] {'ok' if ok else 'FAILED'} params={params!r}")
+    return ok
+
+
 def demo() -> None:
     results = {
         "keyword_only": check_keyword_only(),
         "radius_search": check_radius_search(),
         "radius_defaults_2km": check_radius_defaults_2km(),
         "radius_clamped": check_radius_clamped(),
+        "nearby_restaurants_only": check_nearby_restaurants_only(),
+        "nearby_radius_clamped": check_nearby_radius_clamped(),
     }
     print("\n=== summary ===")
     for name, ok in results.items():
