@@ -49,7 +49,8 @@ npm run dev   # 기본 127.0.0.1:3000
 | `NEXT_PUBLIC_AGENT_API_URL` | 브라우저에서 agent-api를 호출할 URL (기본 `http://127.0.0.1:8787`) |
 | `AGENT_API_URL` | Next.js 서버(라우트 핸들러)에서 agent-api를 호출할 URL — CopilotKit runtime 프록시용 |
 | `NEXT_PUBLIC_KAKAO_JS_KEY` | 카카오맵 JavaScript SDK 키 (지도 렌더링용, REST 키와 별개) |
-| `BASIC_AUTH_USER` / `BASIC_AUTH_PASS` | `middleware.ts`의 HTTP Basic Auth 게이트 (Plans.md M6) — agent-api와 같은 값으로 맞춘다 | (없음) |
+| `NEXT_DEV_ORIGINS` | `next dev`를 LAN에서 열 때 허용할 오리진, 쉼표 구분 (기본 `172.16.4.228`). 다른 기기에서 개발하면 그 기기 IP로 바꾼다 |
+| `BASIC_AUTH_USER` / `BASIC_AUTH_PASS` | `proxy.ts`의 HTTP Basic Auth 게이트 (Next 16에서 middleware가 proxy로 이름이 바뀜) (Plans.md M6) — agent-api와 같은 값으로 맞춘다 | (없음) |
 
 ## 사내망(LAN) 배포
 
