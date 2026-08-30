@@ -1,4 +1,4 @@
-# Foundry Hybrid Agent 설계 문서
+# eat-ops 설계 문서
 
 ## 1. 문서 목적
 
@@ -238,7 +238,7 @@ GB10 로컬 모델을 사용하며 초기에는 다음과 같이 범위가 좁�
 ## 10. 저장소 구조
 
 ```text
-foundry-hybrid-agent/
+eat-ops/
 ├── apps/
 │   ├── web/                 # Next.js + CopilotKit
 │   └── agent-api/           # Python + Agent Framework + AG-UI
@@ -333,7 +333,7 @@ foundry-hybrid-agent/
 
 ## 15. 저장소 이름
 
-권장 이름은 `foundry-hybrid-agent`이다.
+권장 이름은 `eat-ops`이다.
 
 - 기술 목적이 바로 드러난다.
 - 특정 하드웨어 이름에 종속되지 않아 다른 에지 장비로 확장하기 쉽다.

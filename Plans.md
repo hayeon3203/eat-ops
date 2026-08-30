@@ -1,4 +1,4 @@
-# Foundry Hybrid Agent 구현 계획
+# eat-ops 구현 계획
 
 ## 1. 계획의 목적
 
@@ -80,7 +80,7 @@
 ## 5. 목표 저장소 구조
 
 ```text
-foundry-hybrid-agent/
+eat-ops/
 ├── apps/
 │   ├── web/                         # Next.js, CopilotKit UI/Runtime
 │   └── agent-api/                   # FastAPI, Agent Framework, AG-UI endpoint

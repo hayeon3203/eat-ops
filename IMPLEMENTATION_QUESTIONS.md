@@ -1,4 +1,4 @@
-# Foundry Hybrid Agent 구현 계획 사전 질문
+# eat-ops 구현 계획 사전 질문
 
 이 문서는 `DESIGN.md`를 실제 구현 계획으로 변환하기 전에 결정해야 할 사항을 정리한다.
 

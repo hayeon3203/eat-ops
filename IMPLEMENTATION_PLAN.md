@@ -1,4 +1,4 @@
-# Foundry Hybrid Agent 구현 계획
+# eat-ops 구현 계획
 
 `DESIGN.md`와 `IMPLEMENTATION_QUESTIONS.md`의 결정을 바탕으로 작업 순서, 의존관계, 산출물, 완료 조건을 정리한다.
 
