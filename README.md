@@ -6,6 +6,44 @@ CopilotKit + Microsoft Agent Framework 기반 채팅 UI에서 Microsoft Foundry(
 
 `apps/web`(Next.js + CopilotKit)이 `apps/agent-api`(FastAPI + Microsoft Agent Framework)를 AG-UI(SSE) 프로토콜로 호출한다. `agent-api`는 provider별로 `/local`, `/foundry` 두 엔드포인트를 노출하고, 프런트는 사용자가 고른 provider에 맞는 엔드포인트로 붙는다(자동 라우팅 없음, 수동 선택만). 도구(web 검색, 시스템 상태, Met Museum MCP, 카카오 장소 검색/기록/추천)는 두 provider가 공유한다. 설계 배경과 마일스톤 전체 계획은 [`DESIGN.md`](./DESIGN.md), [`Plans.md`](./Plans.md)에 있다 — 여기서는 중복 서술하지 않는다.
 
+## 필요한 API 키와 발급처
+
+처음 세팅하는 사람은 여기부터 본다. 이 레포에는 키가 하나도 들어 있지 않다 — 아래를 직접 발급받아 `.env` 파일에 넣어야 한다.
+
+| 무엇 | 어디서 받나 | 어디에 넣나 | 없으면 |
+|---|---|---|---|
+| **카카오 REST API 키** | [developers.kakao.com](https://developers.kakao.com) → 애플리케이션 추가 → **앱 키**의 `REST API 키` | `apps/agent-api/.env`의 `KAKAO_REST_API_KEY` | 장소 검색·등록·기록이 전부 실패 (앱의 핵심 기능) |
+| **카카오 JavaScript 키** | 위와 **같은 앱**의 `JavaScript 키` (별개 값) | `apps/web/.env.local`의 `NEXT_PUBLIC_KAKAO_JS_KEY` | 지도가 아예 안 뜸 |
+| **Azure AI Foundry 프로젝트** | Azure 구독에서 [AI Foundry](https://ai.azure.com) 프로젝트 생성 후 모델 배포. 키가 아니라 **엔드포인트 URL**을 쓴다 | `apps/agent-api/.env`의 `FOUNDRY_PROJECT_ENDPOINT` (+ 배포 이름을 `FOUNDRY_MODEL`) | `/foundry` 라우트가 등록 안 됨 → 로컬 provider만 사용 가능 (앱은 정상 동작) |
+
+키가 **필요 없는** 의존성:
+
+- **SearXNG** — 직접 호스팅한다(Docker 등). `SEARXNG_BASE_URL`로 주소만 알려주면 된다. 이 레포 범위 밖.
+- **로컬 vLLM** — GB10에서 `infra/local/start-vllm.sh`로 띄운다. `LOCAL_VLLM_BASE_URL`로 주소만 알려준다.
+- **Met Museum MCP** — `npx metmuseum-mcp`가 알아서 받아온다. 공개 API라 키 없음.
+- **`BASIC_AUTH_USER` / `BASIC_AUTH_PASS`** — 발급받는 게 아니라 사내망 배포용으로 **직접 정하는** 값. 안 정하면 게이트가 꺼진 채로 돈다.
+
+### 카카오 키 주의사항
+
+- REST 키와 JavaScript 키는 **같은 앱에서 나오는 서로 다른 값**이다. 바꿔 넣으면 둘 다 조용히 실패한다.
+- JavaScript 키는 카카오 개발자 콘솔의 **플랫폼 → Web에 사이트 도메인을 등록해야만** 동작한다. 개발용으로 `http://localhost:3000`을, LAN 배포를 한다면 그 주소(예: `http://172.16.4.228:3000`)도 함께 등록한다. 등록 안 하면 지도가 빈 화면으로 뜨고 브라우저 콘솔에만 에러가 남는다.
+- 카카오 로컬 API는 **일일 쿼터**가 있다. 초과하면 429가 오고 앱은 "카카오맵 일일 검색 한도를 초과했습니다"를 띄운다 — 키가 틀린 게 아니니 다음날 재시도한다.
+
+### Foundry 주의사항
+
+Foundry는 API 키를 쓰지 않는다. `azure.identity`의 `DefaultAzureCredential`로 **Entra ID 인증**을 하므로, `FOUNDRY_PROJECT_ENDPOINT`를 설정했다면 그 환경에 `az login`으로 인증된 Azure CLI 세션이 있어야 한다. 즉 엔드포인트 URL만 있고 로그인이 없으면 401이 난다 — URL 자체는 비밀이 아니지만, 접근 권한은 Azure 쪽 계정에 달려 있다.
+
+### 파일 만들기
+
+`.env.example`을 복사해서 시작한다. 실제 값이 든 `.env` / `.env.local`은 `.gitignore`에 걸려 있으니 **절대 커밋하지 않는다.**
+
+```bash
+cp apps/agent-api/.env.example apps/agent-api/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+각 변수의 전체 목록과 기본값은 아래 실행 방법의 표에 있다.
+
 ## 실행 방법
 
 사전 조건: SearXNG가 `8081` 포트에 떠 있어야 `web_search` 도구가 동작한다(Docker 등으로 별도 기동, 이 레포 범위 밖).
